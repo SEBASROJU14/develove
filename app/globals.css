@@ -11,7 +11,6 @@
   --color-foreground: #f0f0f0;
 
   --font-sans: var(--font-inter);
-  --font-display: var(--font-cal);
 
   --radius-sm: 8px;
   --radius-md: 12px;
@@ -22,4 +21,33 @@ body {
   background: var(--color-background);
   color: var(--color-foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+@keyframes camera-flash {
+  0% { opacity: 0.9; }
+  100% { opacity: 0; }
+}
+
+.animate-flash {
+  animation: camera-flash 0.25s ease-out forwards;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out forwards;
+}
+
+/* Film grain overlay — add as sibling element */
+.film-grain {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.045;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/></filter><rect width='200' height='200' filter='url(%23n)'/></svg>");
+  background-size: 180px 180px;
 }
