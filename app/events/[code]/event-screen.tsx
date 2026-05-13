@@ -35,9 +35,9 @@ export default function EventScreen({ event, userId, photosTaken: initial }: Pro
   }
 
   return (
-    <main className="min-h-screen px-5 pb-10 max-w-sm mx-auto flex flex-col">
+    <main className="min-h-screen px-5 pb-6 max-w-sm mx-auto flex flex-col">
       <div
-        className="sticky top-0 z-10 -mx-5 px-5 pt-10 pb-4"
+        className="sticky top-0 z-10 -mx-5 px-5 pt-10 pb-3"
         style={{ background: "var(--color-background)" }}
       >
         <Link
@@ -50,26 +50,26 @@ export default function EventScreen({ event, userId, photosTaken: initial }: Pro
         </Link>
       </div>
 
-      <div className="flex-1 flex flex-col justify-center gap-5">
+      <div className="flex-1 flex flex-col justify-center gap-3">
         {/* Nombre y fecha */}
         <div>
           <p
-            className="font-mono text-xs tracking-widest mb-2"
+            className="font-mono text-xs tracking-widest mb-1"
             style={{ color: "var(--color-muted)" }}
           >
             #{event.code}
           </p>
-          <h1 className="text-3xl font-bold" style={{ color: "var(--color-foreground)" }}>
+          <h1 className="text-2xl font-bold" style={{ color: "var(--color-foreground)" }}>
             {event.name}
           </h1>
-          <p className="text-sm mt-1" style={{ color: "var(--color-muted)" }}>
+          <p className="text-sm mt-0.5" style={{ color: "var(--color-muted)" }}>
             {formatDate(event.event_date)}
           </p>
         </div>
 
         {/* Contador del rollo */}
         <div
-          className="rounded-3xl p-6 space-y-5"
+          className="rounded-2xl p-4 space-y-3"
           style={{
             background: "var(--color-surface)",
             border: "1px solid var(--color-border)",
@@ -81,11 +81,11 @@ export default function EventScreen({ event, userId, photosTaken: initial }: Pro
                 Exposiciones
               </p>
               <p
-                className="text-4xl font-mono font-bold leading-none"
+                className="text-3xl font-mono font-bold leading-none"
                 style={{ color: "var(--color-foreground)" }}
               >
                 {photosTaken}
-                <span className="text-xl font-normal" style={{ color: "var(--color-muted)" }}>
+                <span className="text-lg font-normal" style={{ color: "var(--color-muted)" }}>
                   /{event.max_photos_per_person}
                 </span>
               </p>
@@ -96,7 +96,7 @@ export default function EventScreen({ event, userId, photosTaken: initial }: Pro
           {/* Barra de progreso */}
           <div
             className="w-full rounded-full overflow-hidden"
-            style={{ background: "var(--color-border)", height: 5 }}
+            style={{ background: "var(--color-border)", height: 4 }}
           >
             <div
               className="h-full rounded-full transition-all duration-500"
@@ -116,7 +116,7 @@ export default function EventScreen({ event, userId, photosTaken: initial }: Pro
 
         {/* Fecha de revelado */}
         <div
-          className="rounded-2xl px-4 py-3.5"
+          className="rounded-2xl px-4 py-3"
           style={{
             background: "var(--color-surface)",
             border: "1px solid var(--color-border)",
@@ -131,26 +131,24 @@ export default function EventScreen({ event, userId, photosTaken: initial }: Pro
         </div>
 
         {/* CTA */}
-        <div className="mt-2">
-          {revealed ? (
-            <button
-              onClick={() => router.refresh()}
-              className="w-full py-4 rounded-2xl font-semibold text-sm transition-opacity active:opacity-70"
-              style={{ background: "var(--color-primary)", color: "white" }}
-            >
-              Ver galería
-            </button>
-          ) : (
-            <button
-              onClick={() => setShowCamera(true)}
-              disabled={photosLeft <= 0}
-              className="w-full py-4 rounded-2xl font-semibold text-sm disabled:opacity-40 transition-opacity active:opacity-70"
-              style={{ background: "var(--color-primary)", color: "white" }}
-            >
-              {photosLeft <= 0 ? "Rollo completo" : "Tomar foto"}
-            </button>
-          )}
-        </div>
+        {revealed ? (
+          <button
+            onClick={() => router.refresh()}
+            className="w-full py-3 rounded-2xl font-semibold text-sm transition-opacity active:opacity-70"
+            style={{ background: "var(--color-primary)", color: "white" }}
+          >
+            Ver galería
+          </button>
+        ) : (
+          <button
+            onClick={() => setShowCamera(true)}
+            disabled={photosLeft <= 0}
+            className="w-full py-3 rounded-2xl font-semibold text-sm disabled:opacity-40 transition-opacity active:opacity-70"
+            style={{ background: "var(--color-primary)", color: "white" }}
+          >
+            {photosLeft <= 0 ? "Rollo completo" : "Tomar foto"}
+          </button>
+        )}
       </div>
     </main>
   );

@@ -160,7 +160,7 @@ export default function CameraView({
   return (
     <div className="fixed inset-0 bg-black flex flex-col select-none">
       {/* Top bar */}
-      <div className="flex items-center justify-between px-5 pt-12 pb-3">
+      <div className="flex items-center justify-between px-5 pt-10 pb-2">
         {BackBtn}
         <div className="text-center">
           <p className="text-white text-sm font-medium">{event.name}</p>
@@ -173,7 +173,7 @@ export default function CameraView({
       </div>
 
       {/* Viewfinder centrado en formato horizontal */}
-      <div className="flex-1 flex items-center justify-center px-5">
+      <div className="flex-1 flex items-center justify-center px-3">
         <div
           className="relative w-full rounded-2xl overflow-hidden"
           style={{
@@ -227,8 +227,8 @@ export default function CameraView({
 
       {/* Controles inferiores */}
       <div
-        className="flex items-center justify-between px-8 pt-6"
-        style={{ paddingBottom: "max(2.5rem, env(safe-area-inset-bottom))" }}
+        className="flex items-center justify-between px-8 pt-3"
+        style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}
       >
         {/* Cambiar cámara */}
         <button
