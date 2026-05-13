@@ -34,6 +34,9 @@ export default function CameraView({
   const [cameraError, setCameraError] = useState<CameraError | null>(null);
   const [justTook, setJustTook] = useState(false);
   const [flashEnabled, setFlashEnabled] = useState(true);
+  const [portrait, setPortrait] = useState(() =>
+    typeof window !== "undefined" ? window.innerHeight > window.innerWidth : false
+  );
 
   async function activateTorch() {
     if (!flashEnabled) return;
@@ -82,6 +85,22 @@ export default function CameraView({
       streamRef.current?.getTracks().forEach((t) => t.stop());
     };
   }, [startCamera]);
+
+  useEffect(() => {
+    let removeListener: (() => void) | null = null;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (screen.orientation as any).lock("landscape").catch(() => {
+      const update = () => setPortrait(window.innerHeight > window.innerWidth);
+      window.addEventListener("resize", update);
+      removeListener = () => window.removeEventListener("resize", update);
+    });
+
+    return () => {
+      removeListener?.();
+      try { (screen.orientation as any).unlock(); } catch {}
+    };
+  }, []);
 
   async function takePhoto() {
     if (!videoRef.current || !canvasRef.current || taking || photosLeft <= 0) return;
@@ -141,6 +160,10 @@ export default function CameraView({
   function handleBack() {
     streamRef.current?.getTracks().forEach((t) => t.stop());
     onBack?.();
+  }
+
+  if (portrait) {
+    return <RotateScreen onBack={onBack} />;
   }
 
   if (cameraError) {
@@ -268,6 +291,48 @@ export default function CameraView({
         <div className="w-11" />
       </div>
     </div>
+  );
+}
+
+// ── Pantalla de rotación ─────────────────────────────────────────────────────
+
+function RotateScreen({ onBack }: { onBack?: () => void }) {
+  return (
+    <div className="fixed inset-0 bg-black flex flex-col items-center justify-center gap-3">
+      <RotateIcon />
+      <p className="text-white text-sm font-medium">Gira tu celular</p>
+      {onBack && (
+        <button
+          onClick={onBack}
+          className="mt-3 text-xs underline"
+          style={{ color: "rgba(255,255,255,0.4)" }}
+        >
+          Volver al evento
+        </button>
+      )}
+    </div>
+  );
+}
+
+function RotateIcon() {
+  return (
+    <svg
+      width="52"
+      height="52"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="white"
+      strokeWidth="1.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={{ opacity: 0.85 }}
+    >
+      {/* Phone in portrait */}
+      <rect x="7" y="2" width="10" height="16" rx="2" />
+      {/* Arc indicating rotation to landscape */}
+      <path d="M4 20c0-2.5 1-4.5 2.5-6" />
+      <polyline points="4 20 7 19 5 16" />
+    </svg>
   );
 }
 

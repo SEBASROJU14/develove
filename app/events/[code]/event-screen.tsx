@@ -35,22 +35,26 @@ export default function EventScreen({ event, userId, photosTaken: initial }: Pro
   }
 
   return (
-    <main className="min-h-screen px-5 pb-6 max-w-sm mx-auto flex flex-col">
+    <main className="min-h-screen px-5 pb-6 max-w-sm mx-auto flex flex-col justify-center">
+      {/* Volver — fixed fuera del flujo para no afectar el centrado */}
       <div
-        className="sticky top-0 z-10 -mx-5 px-5 pt-10 pb-3"
+        className="fixed top-0 left-0 right-0 z-20 flex justify-center"
         style={{ background: "var(--color-background)" }}
       >
-        <Link
-          href="/dashboard"
-          className="inline-flex items-center gap-2 text-sm"
-          style={{ color: "var(--color-muted)" }}
-        >
-          <ArrowLeft />
-          Volver
-        </Link>
+        <div className="w-full max-w-sm px-5 pt-10 pb-3">
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center gap-2 text-sm"
+            style={{ color: "var(--color-muted)" }}
+          >
+            <ArrowLeft />
+            Volver
+          </Link>
+        </div>
       </div>
 
-      <div className="flex-1 flex flex-col justify-center gap-3">
+      {/* Contenido centrado */}
+      <div className="flex flex-col gap-3">
         {/* Nombre y fecha */}
         <div>
           <p
