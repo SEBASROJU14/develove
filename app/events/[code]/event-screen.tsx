@@ -35,15 +35,20 @@ export default function EventScreen({ event, userId, photosTaken: initial }: Pro
   }
 
   return (
-    <main className="min-h-screen px-5 py-10 max-w-sm mx-auto flex flex-col">
-      <Link
-        href="/dashboard"
-        className="inline-flex items-center gap-2 text-sm mb-10"
-        style={{ color: "var(--color-muted)" }}
+    <main className="min-h-screen px-5 pb-10 max-w-sm mx-auto flex flex-col">
+      <div
+        className="sticky top-0 z-10 -mx-5 px-5 pt-10 pb-4"
+        style={{ background: "var(--color-background)" }}
       >
-        <ArrowLeft />
-        Volver
-      </Link>
+        <Link
+          href="/dashboard"
+          className="inline-flex items-center gap-2 text-sm"
+          style={{ color: "var(--color-muted)" }}
+        >
+          <ArrowLeft />
+          Volver
+        </Link>
+      </div>
 
       <div className="flex-1 flex flex-col justify-center gap-5">
         {/* Nombre y fecha */}
