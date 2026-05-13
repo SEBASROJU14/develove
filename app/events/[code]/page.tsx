@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect, notFound } from "next/navigation";
 import { isRevealed } from "@/lib/utils";
-import CameraView from "./camera-view";
+import EventScreen from "./event-screen";
 import Gallery from "./gallery";
 import JoinScreen from "./join-screen";
 import type { Event, Photo, Profile, PhotoWithProfile } from "@/types/database";
@@ -41,7 +41,7 @@ export default async function EventPage({ params }: Props) {
 
   if (!isRevealed(event.reveal_date)) {
     return (
-      <CameraView
+      <EventScreen
         event={event}
         userId={user.id}
         photosTaken={membership.photos_taken}

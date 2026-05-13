@@ -10,20 +10,28 @@ interface Props {
   event: Event;
   userId: string;
   photosTaken: number;
+  onBack?: () => void;
+  onPhotoTaken?: () => void;
 }
 
-export default function CameraView({ event, userId, photosTaken: initial }: Props) {
+type CameraError = "permission" | "not-found" | "other";
+
+export default function CameraView({
+  event,
+  userId,
+  photosTaken: initial,
+  onBack,
+  onPhotoTaken,
+}: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
-  const [photosLeft, setPhotosLeft] = useState(
-    event.max_photos_per_person - initial
-  );
+  const [photosLeft, setPhotosLeft] = useState(event.max_photos_per_person - initial);
   const [facingMode, setFacingMode] = useState<"environment" | "user">("environment");
   const [taking, setTaking] = useState(false);
   const [flashing, setFlashing] = useState(false);
-  const [cameraError, setCameraError] = useState(false);
+  const [cameraError, setCameraError] = useState<CameraError | null>(null);
   const [justTook, setJustTook] = useState(false);
 
   const startCamera = useCallback(async () => {
@@ -36,12 +44,20 @@ export default function CameraView({ event, userId, photosTaken: initial }: Prop
         audio: false,
       });
       streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
+      if (videoRef.current) videoRef.current.srcObject = stream;
+      setCameraError(null);
+    } catch (err) {
+      if (err instanceof DOMException) {
+        if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
+          setCameraError("permission");
+        } else if (err.name === "NotFoundError" || err.name === "DevicesNotFoundError") {
+          setCameraError("not-found");
+        } else {
+          setCameraError("other");
+        }
+      } else {
+        setCameraError("other");
       }
-      setCameraError(false);
-    } catch {
-      setCameraError(true);
     }
   }, [facingMode]);
 
@@ -53,8 +69,7 @@ export default function CameraView({ event, userId, photosTaken: initial }: Prop
   }, [startCamera]);
 
   async function takePhoto() {
-    if (!videoRef.current || !canvasRef.current || taking || photosLeft <= 0)
-      return;
+    if (!videoRef.current || !canvasRef.current || taking || photosLeft <= 0) return;
     setTaking(true);
     setFlashing(true);
     setTimeout(() => setFlashing(false), 250);
@@ -67,10 +82,7 @@ export default function CameraView({ event, userId, photosTaken: initial }: Prop
 
     canvas.toBlob(
       async (blob) => {
-        if (!blob) {
-          setTaking(false);
-          return;
-        }
+        if (!blob) { setTaking(false); return; }
 
         const supabase = createClient();
         const photoId = crypto.randomUUID();
@@ -80,14 +92,11 @@ export default function CameraView({ event, userId, photosTaken: initial }: Prop
           .from("event-photos")
           .upload(path, blob, { contentType: "image/jpeg" });
 
-        if (uploadError) {
-          setTaking(false);
-          return;
-        }
+        if (uploadError) { setTaking(false); return; }
 
-        const {
-          data: { publicUrl },
-        } = supabase.storage.from("event-photos").getPublicUrl(path);
+        const { data: { publicUrl } } = supabase.storage
+          .from("event-photos")
+          .getPublicUrl(path);
 
         await supabase.from("photos").insert({
           id: photoId,
@@ -103,6 +112,7 @@ export default function CameraView({ event, userId, photosTaken: initial }: Prop
         });
 
         setPhotosLeft((n) => n - 1);
+        onPhotoTaken?.();
         setJustTook(true);
         setTimeout(() => setJustTook(false), 1000);
         setTaking(false);
@@ -112,89 +122,96 @@ export default function CameraView({ event, userId, photosTaken: initial }: Prop
     );
   }
 
-  function flipCamera() {
-    setFacingMode((m) => (m === "environment" ? "user" : "environment"));
+  function handleBack() {
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    onBack?.();
   }
 
   if (cameraError) {
-    return (
-      <div className="fixed inset-0 bg-black flex flex-col items-center justify-center gap-4 px-6 text-center">
-        <p className="text-white text-lg font-medium">Sin acceso a la cámara</p>
-        <p className="text-sm" style={{ color: "#888" }}>
-          Permite el acceso en la configuración de tu navegador
-        </p>
-        <Link href="/dashboard" className="mt-4 text-sm underline text-white">
-          Volver
-        </Link>
-      </div>
-    );
+    return <CameraErrorScreen type={cameraError} onBack={onBack} />;
   }
 
+  const BackBtn = onBack ? (
+    <button onClick={handleBack} className="text-white p-1">
+      <BackArrow />
+    </button>
+  ) : (
+    <Link href="/dashboard" className="text-white p-1">
+      <BackArrow />
+    </Link>
+  );
+
   return (
-    <div className="fixed inset-0 bg-black select-none">
-      {/* Video viewfinder */}
-      <video
-        ref={videoRef}
-        autoPlay
-        playsInline
-        muted
-        className="absolute inset-0 w-full h-full object-cover"
-      />
-      <canvas ref={canvasRef} className="hidden" />
-
-      {/* Flash overlay */}
-      {flashing && (
-        <div className="absolute inset-0 bg-white pointer-events-none animate-flash" />
-      )}
-
-      {/* Top HUD */}
-      <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-5 pt-12 pb-4"
-        style={{ background: "linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, transparent 100%)" }}>
-        <Link href="/dashboard" className="flex items-center gap-1.5 text-white text-sm">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M19 12H5M12 19l-7-7 7-7" />
-          </svg>
-        </Link>
-
+    <div className="fixed inset-0 bg-black flex flex-col select-none">
+      {/* Top bar */}
+      <div className="flex items-center justify-between px-5 pt-12 pb-3">
+        {BackBtn}
         <div className="text-center">
           <p className="text-white text-sm font-medium">{event.name}</p>
-          <p className="text-xs" style={{ color: "rgba(255,255,255,0.6)" }}>
+          <p className="text-xs" style={{ color: "rgba(255,255,255,0.45)" }}>
             revelado {formatDate(event.reveal_date)}
           </p>
         </div>
+        {/* Balance visual con el botón de atrás */}
+        <div className="w-7" />
+      </div>
 
-        {/* Film counter */}
-        <div className="flex items-center gap-1.5">
-          <FilmIcon />
-          <span
-            className="font-mono text-sm font-bold"
-            style={{ color: justTook ? "#e8b4b8" : "white" }}
+      {/* Viewfinder centrado en formato horizontal */}
+      <div className="flex-1 flex items-center justify-center px-5">
+        <div
+          className="relative w-full rounded-2xl overflow-hidden"
+          style={{
+            aspectRatio: "4/3",
+            boxShadow:
+              "0 0 0 2px rgba(255,255,255,0.07), 0 24px 60px rgba(0,0,0,0.9)",
+          }}
+        >
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+          <canvas ref={canvasRef} className="hidden" />
+
+          {/* Flash */}
+          {flashing && (
+            <div className="absolute inset-0 bg-white pointer-events-none animate-flash" />
+          )}
+
+          {/* Contador dentro del viewfinder */}
+          <div
+            className="absolute top-3 right-3 px-2.5 py-1 rounded-full text-xs font-mono font-semibold"
+            style={{
+              background: "rgba(0,0,0,0.52)",
+              backdropFilter: "blur(6px)",
+              color: justTook ? "#e8b4b8" : "white",
+            }}
           >
-            {photosLeft}
-          </span>
+            {photosLeft > 0
+              ? `${photosLeft} foto${photosLeft !== 1 ? "s" : ""} restante${photosLeft !== 1 ? "s" : ""}`
+              : "Rollo completo"}
+          </div>
         </div>
       </div>
 
-      {/* Bottom controls */}
+      {/* Controles inferiores */}
       <div
-        className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-8"
-        style={{
-          paddingBottom: "max(2.5rem, env(safe-area-inset-bottom))",
-          paddingTop: "1.5rem",
-          background: "linear-gradient(to top, rgba(0,0,0,0.65) 0%, transparent 100%)",
-        }}
+        className="flex items-center justify-between px-8 pt-6"
+        style={{ paddingBottom: "max(2.5rem, env(safe-area-inset-bottom))" }}
       >
-        {/* Flip camera */}
+        {/* Cambiar cámara */}
         <button
-          onClick={flipCamera}
+          onClick={() => setFacingMode((m) => (m === "environment" ? "user" : "environment"))}
           disabled={taking}
           className="w-11 h-11 rounded-full flex items-center justify-center transition-opacity active:opacity-60"
-          style={{ background: "rgba(255,255,255,0.15)" }}
+          style={{ background: "rgba(255,255,255,0.12)" }}
         >
           <FlipIcon />
         </button>
 
-        {/* Shutter */}
+        {/* Disparador */}
         <button
           onClick={takePhoto}
           disabled={taking || photosLeft <= 0}
@@ -202,46 +219,176 @@ export default function CameraView({ event, userId, photosTaken: initial }: Prop
           style={{
             width: 76,
             height: 76,
-            background: photosLeft <= 0 ? "#444" : "white",
-            boxShadow: "0 0 0 5px rgba(255,255,255,0.25)",
+            background: photosLeft <= 0 ? "#333" : "white",
+            boxShadow: "0 0 0 5px rgba(255,255,255,0.18)",
           }}
         >
           {taking && (
-            <div className="absolute inset-0 rounded-full" style={{ background: "rgba(0,0,0,0.2)" }} />
+            <div
+              className="absolute inset-0 rounded-full"
+              style={{ background: "rgba(0,0,0,0.22)" }}
+            />
           )}
           {photosLeft <= 0 && (
-            <span className="text-xs font-medium text-white">Lleno</span>
+            <span className="text-xs font-medium" style={{ color: "#888" }}>
+              Lleno
+            </span>
           )}
         </button>
 
-        {/* Placeholder for balance */}
         <div className="w-11" />
       </div>
     </div>
   );
 }
 
-function FilmIcon() {
+// ── Pantalla de error ────────────────────────────────────────────────────────
+
+type Browser = "chrome" | "safari-ios" | "safari-mac" | "firefox" | "edge" | "other";
+
+function detectBrowser(): Browser {
+  if (typeof navigator === "undefined") return "other";
+  const ua = navigator.userAgent;
+  if (ua.includes("Edg/")) return "edge";
+  if (ua.includes("Chrome/")) return "chrome";
+  if (ua.includes("Firefox/")) return "firefox";
+  if (ua.includes("Safari/")) return /iPad|iPhone|iPod/.test(ua) ? "safari-ios" : "safari-mac";
+  return "other";
+}
+
+const PERMISSION_STEPS: Record<Browser, { title: string; steps: string[] }> = {
+  chrome: {
+    title: "Cámara bloqueada en Chrome",
+    steps: [
+      "Toca el ícono 🔒 o ⓘ en la barra de direcciones",
+      'Selecciona "Permisos del sitio"',
+      'Cambia "Cámara" a Permitir',
+      "Recarga la página",
+    ],
+  },
+  edge: {
+    title: "Cámara bloqueada en Edge",
+    steps: [
+      "Toca el ícono 🔒 en la barra de direcciones",
+      'Selecciona "Permisos para este sitio"',
+      'Cambia "Cámara" a Permitir',
+      "Recarga la página",
+    ],
+  },
+  "safari-ios": {
+    title: "Cámara bloqueada en Safari",
+    steps: [
+      "Abre Configuración del iPhone/iPad",
+      "Baja hasta Safari → Cámara",
+      'Selecciona "Permitir"',
+      "Vuelve a Safari y recarga la página",
+    ],
+  },
+  "safari-mac": {
+    title: "Cámara bloqueada en Safari",
+    steps: [
+      "En la barra de menú ve a Safari → Configuración",
+      'Abre la pestaña "Sitios web"',
+      'En "Cámara", cambia este sitio a Permitir',
+      "Recarga la página",
+    ],
+  },
+  firefox: {
+    title: "Cámara bloqueada en Firefox",
+    steps: [
+      "Toca el ícono de cámara en la barra de direcciones",
+      'Selecciona "Eliminar bloqueo"',
+      "Recarga la página",
+    ],
+  },
+  other: {
+    title: "Sin acceso a la cámara",
+    steps: [
+      "Busca el ícono de cámara o 🔒 en la barra de direcciones",
+      "Activa el permiso de cámara para este sitio",
+      "Recarga la página",
+    ],
+  },
+};
+
+function CameraErrorScreen({
+  type,
+  onBack,
+}: {
+  type: CameraError;
+  onBack?: () => void;
+}) {
+  const info = type === "permission" ? PERMISSION_STEPS[detectBrowser()] : null;
+
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/>
-      <line x1="7" y1="2" x2="7" y2="22"/>
-      <line x1="17" y1="2" x2="17" y2="22"/>
-      <line x1="2" y1="12" x2="22" y2="12"/>
-      <line x1="2" y1="7" x2="7" y2="7"/>
-      <line x1="2" y1="17" x2="7" y2="17"/>
-      <line x1="17" y1="17" x2="22" y2="17"/>
-      <line x1="17" y1="7" x2="22" y2="7"/>
+    <div className="fixed inset-0 bg-black flex flex-col items-center justify-center px-6">
+      <div className="max-w-xs w-full space-y-6">
+        <p className="text-3xl text-center">📷</p>
+
+        <p className="text-white text-lg font-semibold text-center">
+          {type === "not-found"
+            ? "No se encontró cámara"
+            : info?.title ?? "Error al acceder a la cámara"}
+        </p>
+
+        {type === "not-found" ? (
+          <p className="text-sm text-center" style={{ color: "#888" }}>
+            Este dispositivo no tiene cámara disponible.
+          </p>
+        ) : info ? (
+          <ol className="space-y-3">
+            {info.steps.map((step, i) => (
+              <li key={i} className="flex items-start gap-3 text-sm" style={{ color: "#ccc" }}>
+                <span
+                  className="shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold mt-0.5"
+                  style={{ background: "rgba(255,255,255,0.13)", color: "white" }}
+                >
+                  {i + 1}
+                </span>
+                {step}
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <p className="text-sm text-center" style={{ color: "#888" }}>
+            Algo salió mal al acceder a la cámara.
+          </p>
+        )}
+
+        <div className="text-center pt-2">
+          {onBack ? (
+            <button onClick={onBack} className="text-sm underline" style={{ color: "#888" }}>
+              Volver al evento
+            </button>
+          ) : (
+            <Link href="/dashboard" className="text-sm underline" style={{ color: "#888" }}>
+              Volver
+            </Link>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Iconos ───────────────────────────────────────────────────────────────────
+
+function BackArrow() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M19 12H5M12 19l-7-7 7-7" />
     </svg>
   );
 }
 
 function FlipIcon() {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M1 4v6h6"/>
-      <path d="M23 20v-6h-6"/>
-      <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white"
+      strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M1 4v6h6" />
+      <path d="M23 20v-6h-6" />
+      <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15" />
     </svg>
   );
 }
