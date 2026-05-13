@@ -14,10 +14,25 @@ const FILTERS: Record<FilterKey, { label: string; desc: string }> = {
 };
 
 const FILTER_SVG_DEFS: Record<FilterKey, string> = {
-  golden: `<filter id="filter-golden" color-interpolation-filters="sRGB" x="-5%" y="-5%" width="110%" height="110%"><feColorMatrix type="matrix" values="1.15 0.05 -0.05 0 0.02  0 0.97 0 0 0.01  -0.15 -0.05 0.88 0 0  0 0 0 1 0" result="colored"/><feComponentTransfer in="colored" result="graded"><feFuncR type="gamma" amplitude="1" exponent="0.85" offset="0.04"/><feFuncG type="gamma" amplitude="1" exponent="0.90" offset="0.02"/><feFuncB type="gamma" amplitude="0.95" exponent="0.98" offset="0.01"/></feComponentTransfer><feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" seed="2" stitchTiles="stitch" result="noise"/><feColorMatrix type="saturate" values="0" in="noise" result="mono-noise"/><feComponentTransfer in="mono-noise" result="grain"><feFuncR type="linear" slope="0.10" intercept="0.45"/><feFuncG type="linear" slope="0.10" intercept="0.45"/><feFuncB type="linear" slope="0.10" intercept="0.45"/></feComponentTransfer><feBlend in="graded" in2="grain" mode="overlay" result="with-grain"/><feGaussianBlur stdDeviation="9" in="SourceGraphic" result="blur"/><feComponentTransfer in="blur" result="warm-glow"><feFuncR type="linear" slope="3.0" intercept="-1.3"/><feFuncG type="linear" slope="1.4" intercept="-0.8"/><feFuncB type="linear" slope="0.6" intercept="-0.5"/></feComponentTransfer><feBlend in="with-grain" in2="warm-glow" mode="screen"/></filter>`,
-  bw: `<filter id="filter-bw" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values="0.299 0.587 0.114 0 0  0.299 0.587 0.114 0 0  0.299 0.587 0.114 0 0  0 0 0 1 0" result="gray"/><feComponentTransfer in="gray" result="graded"><feFuncR type="gamma" amplitude="1" exponent="0.80" offset="0.01"/><feFuncG type="gamma" amplitude="1" exponent="0.80" offset="0.01"/><feFuncB type="gamma" amplitude="1" exponent="0.80" offset="0.01"/></feComponentTransfer><feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" seed="5" stitchTiles="stitch" result="noise"/><feColorMatrix type="saturate" values="0" in="noise" result="mono-noise"/><feComponentTransfer in="mono-noise" result="grain"><feFuncR type="linear" slope="0.13" intercept="0.44"/><feFuncG type="linear" slope="0.13" intercept="0.44"/><feFuncB type="linear" slope="0.13" intercept="0.44"/></feComponentTransfer><feBlend in="graded" in2="grain" mode="overlay"/></filter>`,
-  ghost: `<filter id="filter-ghost" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values="0.85 0.05 0.05 0 0.02  0.02 0.80 0.05 0 0.01  0.02 0.05 0.95 0 0.03  0 0 0 1 0" result="cooled"/><feComponentTransfer in="cooled" result="faded"><feFuncR type="gamma" amplitude="0.88" exponent="0.95" offset="0.05"/><feFuncG type="gamma" amplitude="0.85" exponent="0.95" offset="0.04"/><feFuncB type="gamma" amplitude="0.95" exponent="0.92" offset="0.04"/></feComponentTransfer><feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" seed="8" stitchTiles="stitch" result="noise"/><feColorMatrix type="saturate" values="0" in="noise" result="mono-noise"/><feComponentTransfer in="mono-noise" result="grain"><feFuncR type="linear" slope="0.08" intercept="0.46"/><feFuncG type="linear" slope="0.08" intercept="0.46"/><feFuncB type="linear" slope="0.08" intercept="0.46"/></feComponentTransfer><feBlend in="faded" in2="grain" mode="overlay"/></filter>`,
+  // brightness(0.85)*contrast(1.4) → slope=1.19 intercept=-0.2 | saturate(1.5) | sepia(0.35) | hue-rotate(-15)
+  // halation: blur(12) orange #ff8c00 screen | grain: 0.65/4oct overlay 18%
+  golden: `<filter id="filter-golden" color-interpolation-filters="sRGB" x="-5%" y="-5%" width="110%" height="110%"><feComponentTransfer result="bc"><feFuncR type="linear" slope="1.19" intercept="-0.2"/><feFuncG type="linear" slope="1.19" intercept="-0.2"/><feFuncB type="linear" slope="1.19" intercept="-0.2"/></feComponentTransfer><feColorMatrix in="bc" type="saturate" values="1.5" result="sat"/><feColorMatrix in="sat" type="matrix" values="0.788 0.269 0.066 0 0  0.122 0.890 0.059 0 0  0.095 0.187 0.696 0 0  0 0 0 1 0" result="sep"/><feColorMatrix in="sep" type="hueRotate" values="-15" result="graded"/><feGaussianBlur in="SourceGraphic" stdDeviation="12" result="glow"/><feFlood flood-color="#ff8c00" result="orange"/><feBlend in="orange" in2="glow" mode="multiply" result="orange-glow"/><feBlend in="graded" in2="orange-glow" mode="screen" result="lit"/><feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="4" seed="2" stitchTiles="stitch" result="noise"/><feColorMatrix type="saturate" values="0" in="noise" result="mono"/><feBlend in="lit" in2="mono" mode="overlay" result="grain-blend"/><feComposite in="lit" in2="grain-blend" operator="arithmetic" k1="0" k2="0.82" k3="0.18" k4="0"/></filter>`,
+  // grayscale(1) | brightness(1.0)*contrast(1.15) → slope=1.15 intercept=-0.075 | sepia(0.08)
+  // grain: 0.55/4oct overlay 13%  (no halation)
+  bw: `<filter id="filter-bw" color-interpolation-filters="sRGB"><feColorMatrix type="saturate" values="0" result="gray"/><feComponentTransfer in="gray" result="bc"><feFuncR type="linear" slope="1.15" intercept="-0.075"/><feFuncG type="linear" slope="1.15" intercept="-0.075"/><feFuncB type="linear" slope="1.15" intercept="-0.075"/></feComponentTransfer><feColorMatrix in="bc" type="matrix" values="0.951 0.062 0.015 0 0  0.028 0.975 0.013 0 0  0.022 0.043 0.930 0 0  0 0 0 1 0" result="graded"/><feTurbulence type="fractalNoise" baseFrequency="0.55" numOctaves="4" seed="5" stitchTiles="stitch" result="noise"/><feColorMatrix type="saturate" values="0" in="noise" result="mono"/><feBlend in="graded" in2="mono" mode="overlay" result="grain-blend"/><feComposite in="graded" in2="grain-blend" operator="arithmetic" k1="0" k2="0.87" k3="0.13" k4="0"/></filter>`,
+  // brightness(1.05)*contrast(0.95) → slope=0.9975 intercept=0.025 | saturate(0.7) | hue-rotate(10)
+  // halation: blur(8) cold-white #e8f0ff screen | grain: 0.55/4oct overlay 12%
+  ghost: `<filter id="filter-ghost" color-interpolation-filters="sRGB" x="-5%" y="-5%" width="110%" height="110%"><feComponentTransfer result="bc"><feFuncR type="linear" slope="0.9975" intercept="0.025"/><feFuncG type="linear" slope="0.9975" intercept="0.025"/><feFuncB type="linear" slope="0.9975" intercept="0.025"/></feComponentTransfer><feColorMatrix in="bc" type="saturate" values="0.7" result="sat"/><feColorMatrix in="sat" type="hueRotate" values="10" result="graded"/><feGaussianBlur in="SourceGraphic" stdDeviation="8" result="glow"/><feFlood flood-color="#e8f0ff" result="cold"/><feBlend in="cold" in2="glow" mode="multiply" result="cold-glow"/><feBlend in="graded" in2="cold-glow" mode="screen" result="lit"/><feTurbulence type="fractalNoise" baseFrequency="0.55" numOctaves="4" seed="8" stitchTiles="stitch" result="noise"/><feColorMatrix type="saturate" values="0" in="noise" result="mono"/><feBlend in="lit" in2="mono" mode="overlay" result="grain-blend"/><feComposite in="lit" in2="grain-blend" operator="arithmetic" k1="0" k2="0.88" k3="0.12" k4="0"/></filter>`,
 };
+
+// Viñeta: radialGradient CSS para DOM, opacidades según especificación
+const VIGNETTES: Record<FilterKey, string> = {
+  golden: "radial-gradient(ellipse at 50% 50%, transparent 35%, rgba(0,0,0,0.35) 100%)",
+  ghost:  "radial-gradient(ellipse at 50% 50%, transparent 35%, rgba(0,0,0,0.20) 100%)",
+  bw:     "radial-gradient(ellipse at 50% 50%, transparent 35%, rgba(0,0,0,0.15) 100%)",
+};
+
+const VIGNETTE_OPACITY: Record<FilterKey, number> = { golden: 0.35, ghost: 0.20, bw: 0.15 };
 
 interface Props {
   event: Event;
@@ -59,7 +74,17 @@ async function applyFilterToBlob(url: string, filterId: FilterKey): Promise<Blob
     const outCanvas = document.createElement("canvas");
     outCanvas.width = w;
     outCanvas.height = h;
-    outCanvas.getContext("2d")!.drawImage(svgImg, 0, 0);
+    const outCtx = outCanvas.getContext("2d")!;
+    outCtx.drawImage(svgImg, 0, 0);
+
+    // Viñeta: radialGradient quemado en canvas
+    const cx = w / 2, cy = h / 2;
+    const outerR = Math.sqrt(cx * cx + cy * cy);
+    const vgrad = outCtx.createRadialGradient(cx, cy, outerR * 0.35, cx, cy, outerR);
+    vgrad.addColorStop(0, "rgba(0,0,0,0)");
+    vgrad.addColorStop(1, `rgba(0,0,0,${VIGNETTE_OPACITY[filterId]})`);
+    outCtx.fillStyle = vgrad;
+    outCtx.fillRect(0, 0, w, h);
 
     return new Promise<Blob>((resolve, reject) =>
       outCanvas.toBlob(
@@ -219,6 +244,7 @@ export default function Gallery({ event, photos }: Props) {
                   style={{ filter: `url('#filter-${filter}')` }}
                   loading="lazy"
                 />
+                <div className="absolute inset-0 pointer-events-none" style={{ background: VIGNETTES[filter] }} />
                 <div className="film-grain" />
 
                 {/* Autor */}
@@ -293,7 +319,7 @@ export default function Gallery({ event, photos }: Props) {
             </div>
           </div>
 
-          <div className="flex-1 flex items-center justify-center px-2">
+          <div className="flex-1 flex items-center justify-center px-2 relative">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={lightbox.storage_url}
@@ -302,6 +328,7 @@ export default function Gallery({ event, photos }: Props) {
               style={{ filter: `url('#filter-${filter}')` }}
               onClick={(e) => e.stopPropagation()}
             />
+            <div className="absolute inset-0 pointer-events-none" style={{ background: VIGNETTES[filter] }} />
           </div>
 
           <p className="text-center text-xs pb-10" style={{ color: "rgba(255,255,255,0.4)" }}>
