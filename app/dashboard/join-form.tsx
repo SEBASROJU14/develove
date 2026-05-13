@@ -1,19 +1,31 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 export default function JoinForm() {
-  const [code, setCode] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [codeLen, setCodeLen] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
 
+  function handleInput() {
+    const el = inputRef.current;
+    if (!el) return;
+    // Filtrar a mayúsculas alfanuméricas directamente en el DOM
+    const filtered = el.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+    el.value = filtered;
+    setCodeLen(filtered.length);
+    if (error) setError("");
+  }
+
   async function join(e: React.FormEvent) {
     e.preventDefault();
-    const trimmed = code.trim().toUpperCase();
-    if (trimmed.length !== 6) return;
+    const code = inputRef.current?.value ?? "";
+    if (code.length !== 6) return;
+
     setLoading(true);
     setError("");
 
@@ -26,7 +38,7 @@ export default function JoinForm() {
     const { data: event } = await supabase
       .from("events")
       .select("id, code")
-      .eq("code", trimmed)
+      .eq("code", code)
       .single();
 
     if (!event) {
@@ -54,14 +66,17 @@ export default function JoinForm() {
   return (
     <form onSubmit={join} className="flex flex-col gap-2">
       <input
-        value={code}
-        onChange={(e) => {
-          setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""));
-          setError("");
-        }}
+        ref={inputRef}
+        type="text"
+        onInput={handleInput}
         maxLength={6}
         placeholder="ABC123"
-        className="w-full text-center font-mono text-lg tracking-widest bg-transparent outline-none"
+        autoComplete="off"
+        autoCorrect="off"
+        autoCapitalize="characters"
+        spellCheck={false}
+        enterKeyHint="go"
+        className="w-full text-center font-mono text-lg tracking-widest bg-transparent outline-none py-1"
         style={{ color: "var(--color-foreground)" }}
       />
       {error && (
@@ -71,7 +86,7 @@ export default function JoinForm() {
       )}
       <button
         type="submit"
-        disabled={loading || code.length < 6}
+        disabled={loading || codeLen < 6}
         className="w-full py-2 rounded-lg text-sm font-medium disabled:opacity-30 cursor-pointer transition-opacity"
         style={{
           background: "var(--color-border)",

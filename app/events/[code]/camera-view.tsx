@@ -33,6 +33,21 @@ export default function CameraView({
   const [flashing, setFlashing] = useState(false);
   const [cameraError, setCameraError] = useState<CameraError | null>(null);
   const [justTook, setJustTook] = useState(false);
+  const [flashEnabled, setFlashEnabled] = useState(true);
+
+  async function activateTorch() {
+    if (!flashEnabled) return;
+    const track = streamRef.current?.getVideoTracks()[0];
+    if (!track) return;
+    const caps = (track.getCapabilities?.() ?? {}) as MediaTrackCapabilities & { torch?: boolean };
+    if (!caps.torch) return;
+    try {
+      await track.applyConstraints({ advanced: [{ torch: true } as MediaTrackConstraintSet] });
+      setTimeout(async () => {
+        try { await track.applyConstraints({ advanced: [{ torch: false } as MediaTrackConstraintSet] }); } catch {}
+      }, 150);
+    } catch {}
+  }
 
   const startCamera = useCallback(async () => {
     if (streamRef.current) {
@@ -72,6 +87,7 @@ export default function CameraView({
     if (!videoRef.current || !canvasRef.current || taking || photosLeft <= 0) return;
     setTaking(true);
     setFlashing(true);
+    activateTorch();
     setTimeout(() => setFlashing(false), 250);
 
     const video = videoRef.current;
@@ -179,6 +195,19 @@ export default function CameraView({
           {flashing && (
             <div className="absolute inset-0 bg-white pointer-events-none animate-flash" />
           )}
+
+          {/* Toggle flash */}
+          <button
+            onClick={() => setFlashEnabled((f) => !f)}
+            className="absolute top-3 left-3 w-8 h-8 rounded-full flex items-center justify-center transition-opacity"
+            style={{
+              background: "rgba(0,0,0,0.52)",
+              backdropFilter: "blur(6px)",
+              color: flashEnabled ? "#ffd60a" : "rgba(255,255,255,0.35)",
+            }}
+          >
+            <FlashIcon />
+          </button>
 
           {/* Contador dentro del viewfinder */}
           <div
@@ -378,6 +407,14 @@ function BackArrow() {
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
       strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M19 12H5M12 19l-7-7 7-7" />
+    </svg>
+  );
+}
+
+function FlashIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M13 2L4.09 12.96A1 1 0 0 0 5 14.5h5.5L11 22l8.91-10.96A1 1 0 0 0 19 9.5h-5.5L13 2z" />
     </svg>
   );
 }

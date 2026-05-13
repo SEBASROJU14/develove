@@ -7,22 +7,16 @@ import type { Event, PhotoWithProfile } from "@/types/database";
 
 type FilterKey = "golden" | "bw" | "ghost";
 
-const FILTERS: Record<FilterKey, { label: string; desc: string; css: string }> = {
-  golden: {
-    label: "Golden Film",
-    desc: "Cálido",
-    css: "brightness(1.04) contrast(1.1) saturate(1.3) sepia(0.12) hue-rotate(-5deg)",
-  },
-  bw: {
-    label: "Black & White Film",
-    desc: "B&W",
-    css: "grayscale(1) contrast(1.2) brightness(0.92) sepia(0.04)",
-  },
-  ghost: {
-    label: "Ghost Film",
-    desc: "Frío",
-    css: "brightness(1.04) contrast(0.95) saturate(0.75) hue-rotate(8deg)",
-  },
+const FILTERS: Record<FilterKey, { label: string; desc: string }> = {
+  golden: { label: "Golden Film", desc: "Cálido" },
+  bw: { label: "Black & White Film", desc: "B&W" },
+  ghost: { label: "Ghost Film", desc: "Frío" },
+};
+
+const FILTER_SVG_DEFS: Record<FilterKey, string> = {
+  golden: `<filter id="filter-golden" color-interpolation-filters="sRGB" x="-5%" y="-5%" width="110%" height="110%"><feColorMatrix type="matrix" values="1.15 0.05 -0.05 0 0.02  0 0.97 0 0 0.01  -0.15 -0.05 0.88 0 0  0 0 0 1 0" result="colored"/><feComponentTransfer in="colored" result="graded"><feFuncR type="gamma" amplitude="1" exponent="0.85" offset="0.04"/><feFuncG type="gamma" amplitude="1" exponent="0.90" offset="0.02"/><feFuncB type="gamma" amplitude="0.95" exponent="0.98" offset="0.01"/></feComponentTransfer><feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" seed="2" stitchTiles="stitch" result="noise"/><feColorMatrix type="saturate" values="0" in="noise" result="mono-noise"/><feComponentTransfer in="mono-noise" result="grain"><feFuncR type="linear" slope="0.10" intercept="0.45"/><feFuncG type="linear" slope="0.10" intercept="0.45"/><feFuncB type="linear" slope="0.10" intercept="0.45"/></feComponentTransfer><feBlend in="graded" in2="grain" mode="overlay" result="with-grain"/><feGaussianBlur stdDeviation="9" in="SourceGraphic" result="blur"/><feComponentTransfer in="blur" result="warm-glow"><feFuncR type="linear" slope="3.0" intercept="-1.3"/><feFuncG type="linear" slope="1.4" intercept="-0.8"/><feFuncB type="linear" slope="0.6" intercept="-0.5"/></feComponentTransfer><feBlend in="with-grain" in2="warm-glow" mode="screen"/></filter>`,
+  bw: `<filter id="filter-bw" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values="0.299 0.587 0.114 0 0  0.299 0.587 0.114 0 0  0.299 0.587 0.114 0 0  0 0 0 1 0" result="gray"/><feComponentTransfer in="gray" result="graded"><feFuncR type="gamma" amplitude="1" exponent="0.80" offset="0.01"/><feFuncG type="gamma" amplitude="1" exponent="0.80" offset="0.01"/><feFuncB type="gamma" amplitude="1" exponent="0.80" offset="0.01"/></feComponentTransfer><feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" seed="5" stitchTiles="stitch" result="noise"/><feColorMatrix type="saturate" values="0" in="noise" result="mono-noise"/><feComponentTransfer in="mono-noise" result="grain"><feFuncR type="linear" slope="0.13" intercept="0.44"/><feFuncG type="linear" slope="0.13" intercept="0.44"/><feFuncB type="linear" slope="0.13" intercept="0.44"/></feComponentTransfer><feBlend in="graded" in2="grain" mode="overlay"/></filter>`,
+  ghost: `<filter id="filter-ghost" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values="0.85 0.05 0.05 0 0.02  0.02 0.80 0.05 0 0.01  0.02 0.05 0.95 0 0.03  0 0 0 1 0" result="cooled"/><feComponentTransfer in="cooled" result="faded"><feFuncR type="gamma" amplitude="0.88" exponent="0.95" offset="0.05"/><feFuncG type="gamma" amplitude="0.85" exponent="0.95" offset="0.04"/><feFuncB type="gamma" amplitude="0.95" exponent="0.92" offset="0.04"/></feComponentTransfer><feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" seed="8" stitchTiles="stitch" result="noise"/><feColorMatrix type="saturate" values="0" in="noise" result="mono-noise"/><feComponentTransfer in="mono-noise" result="grain"><feFuncR type="linear" slope="0.08" intercept="0.46"/><feFuncG type="linear" slope="0.08" intercept="0.46"/><feFuncB type="linear" slope="0.08" intercept="0.46"/></feComponentTransfer><feBlend in="faded" in2="grain" mode="overlay"/></filter>`,
 };
 
 interface Props {
@@ -30,9 +24,7 @@ interface Props {
   photos: PhotoWithProfile[];
 }
 
-// Aplica un CSS filter a una imagen vía Canvas y devuelve el Blob resultante.
-// El filtro queda "quemado" en los píxeles — la imagen en Storage no se modifica.
-async function applyFilterToBlob(url: string, filterCss: string): Promise<Blob> {
+async function applyFilterToBlob(url: string, filterId: FilterKey): Promise<Blob> {
   const img = new Image();
   img.crossOrigin = "anonymous";
   await new Promise<void>((resolve, reject) => {
@@ -41,20 +33,44 @@ async function applyFilterToBlob(url: string, filterCss: string): Promise<Blob> 
     img.src = url;
   });
 
-  const canvas = document.createElement("canvas");
-  canvas.width = img.naturalWidth;
-  canvas.height = img.naturalHeight;
-  const ctx = canvas.getContext("2d")!;
-  ctx.filter = filterCss;
-  ctx.drawImage(img, 0, 0);
+  const w = img.naturalWidth;
+  const h = img.naturalHeight;
 
-  return new Promise<Blob>((resolve, reject) =>
-    canvas.toBlob(
-      (blob) => (blob ? resolve(blob) : reject(new Error("Canvas toBlob falló"))),
-      "image/jpeg",
-      0.92
-    )
-  );
+  const tmpCanvas = document.createElement("canvas");
+  tmpCanvas.width = w;
+  tmpCanvas.height = h;
+  tmpCanvas.getContext("2d")!.drawImage(img, 0, 0);
+  const dataUrl = tmpCanvas.toDataURL("image/jpeg", 0.92);
+
+  const filterDef = FILTER_SVG_DEFS[filterId].replace(/id="filter-[^"]*"/, 'id="ff"');
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${w}" height="${h}"><defs>${filterDef}</defs><image width="${w}" height="${h}" href="${dataUrl}" filter="url(#ff)"/></svg>`;
+
+  const svgBlob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
+  const svgUrl = URL.createObjectURL(svgBlob);
+
+  try {
+    const svgImg = new Image();
+    await new Promise<void>((resolve, reject) => {
+      svgImg.onload = () => resolve();
+      svgImg.onerror = () => reject(new Error("SVG render failed"));
+      svgImg.src = svgUrl;
+    });
+
+    const outCanvas = document.createElement("canvas");
+    outCanvas.width = w;
+    outCanvas.height = h;
+    outCanvas.getContext("2d")!.drawImage(svgImg, 0, 0);
+
+    return new Promise<Blob>((resolve, reject) =>
+      outCanvas.toBlob(
+        (blob) => (blob ? resolve(blob) : reject(new Error("Canvas toBlob falló"))),
+        "image/jpeg",
+        0.92
+      )
+    );
+  } finally {
+    URL.revokeObjectURL(svgUrl);
+  }
 }
 
 function triggerDownload(blob: Blob, filename: string) {
@@ -78,7 +94,7 @@ export default function Gallery({ event, photos }: Props) {
     if (downloadingPhoto) return;
     setDownloadingPhoto(photo.id);
     try {
-      const blob = await applyFilterToBlob(photo.storage_url, FILTERS[filter].css);
+      const blob = await applyFilterToBlob(photo.storage_url, filter);
       const author = photo.profile?.full_name?.split(" ")[0] ?? "foto";
       triggerDownload(blob, `${event.name}-${author}-${photo.id.slice(0, 6)}.jpg`);
     } finally {
@@ -89,14 +105,14 @@ export default function Gallery({ event, photos }: Props) {
   async function downloadAlbum() {
     if (downloadingAlbum || photos.length === 0) return;
     setDownloadingAlbum(true);
+    const currentFilter = filter;
     try {
       const { default: JSZip } = await import("jszip");
       const zip = new JSZip();
-      const filterCss = FILTERS[filter].css;
 
       await Promise.all(
         photos.map(async (photo, i) => {
-          const blob = await applyFilterToBlob(photo.storage_url, filterCss);
+          const blob = await applyFilterToBlob(photo.storage_url, currentFilter);
           const author = photo.profile?.full_name?.split(" ")[0] ?? "anon";
           zip.file(`${String(i + 1).padStart(2, "0")}-${author}.jpg`, blob);
         })
@@ -111,6 +127,13 @@ export default function Gallery({ event, photos }: Props) {
 
   return (
     <>
+      <div
+        aria-hidden="true"
+        style={{ position: "absolute", width: 0, height: 0, overflow: "hidden" }}
+        dangerouslySetInnerHTML={{
+          __html: `<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0"><defs>${Object.values(FILTER_SVG_DEFS).join("")}</defs></svg>`,
+        }}
+      />
       <div className="min-h-screen" style={{ background: "var(--color-background)" }}>
         {/* Header */}
         <div
@@ -193,7 +216,7 @@ export default function Gallery({ event, photos }: Props) {
                   src={photo.storage_url}
                   alt=""
                   className="w-full h-full object-cover"
-                  style={{ filter: FILTERS[filter].css }}
+                  style={{ filter: `url('#filter-${filter}')` }}
                   loading="lazy"
                 />
                 <div className="film-grain" />
@@ -276,7 +299,7 @@ export default function Gallery({ event, photos }: Props) {
               src={lightbox.storage_url}
               alt=""
               className="max-w-full max-h-full object-contain"
-              style={{ filter: FILTERS[filter].css }}
+              style={{ filter: `url('#filter-${filter}')` }}
               onClick={(e) => e.stopPropagation()}
             />
           </div>
