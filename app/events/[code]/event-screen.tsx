@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { isRevealed, formatDate } from "@/lib/utils";
@@ -21,6 +21,31 @@ export default function EventScreen({ event, userId, photosTaken: initial }: Pro
   const photosLeft = event.max_photos_per_person - photosTaken;
   const pct = Math.min((photosTaken / event.max_photos_per_person) * 100, 100);
   const revealed = isRevealed(event.reveal_date);
+
+  const [countdown, setCountdown] = useState("");
+
+  useEffect(() => {
+    if (revealed) return;
+
+    function compute() {
+      const diff = new Date(event.reveal_date).getTime() - Date.now();
+      if (diff <= 0) { setCountdown(""); return; }
+      const days    = Math.floor(diff / 86400000);
+      const hours   = Math.floor((diff % 86400000) / 3600000);
+      const minutes = Math.floor((diff % 3600000) / 60000);
+      const seconds = Math.floor((diff % 60000) / 1000);
+      const parts: string[] = [];
+      if (days)    parts.push(`${days} día${days !== 1 ? "s" : ""}`);
+      if (hours)   parts.push(`${hours} hora${hours !== 1 ? "s" : ""}`);
+      if (minutes) parts.push(`${minutes} minuto${minutes !== 1 ? "s" : ""}`);
+      if (!days)   parts.push(`${seconds} segundo${seconds !== 1 ? "s" : ""}`);
+      setCountdown(parts.join(", "));
+    }
+
+    compute();
+    const id = setInterval(compute, 1000);
+    return () => clearInterval(id);
+  }, [revealed, event.reveal_date]);
 
   if (showCamera) {
     return (
@@ -127,10 +152,10 @@ export default function EventScreen({ event, userId, photosTaken: initial }: Pro
           }}
         >
           <p className="text-xs mb-0.5" style={{ color: "var(--color-muted)" }}>
-            {revealed ? "Revelado el" : "Se revela el"}
+            {revealed ? "Revelado el" : "Se revela en:"}
           </p>
           <p className="text-sm font-medium" style={{ color: "var(--color-foreground)" }}>
-            {formatDate(event.reveal_date)}
+            {revealed ? formatDate(event.reveal_date) : countdown}
           </p>
         </div>
 
