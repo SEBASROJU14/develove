@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import SignOutButton from "./sign-out-button";
 import JoinForm from "./join-form";
 import { formatDate, isRevealed } from "@/lib/utils";
@@ -31,9 +32,7 @@ export default async function DashboardPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-10">
         <div>
-          <h1 className="text-xl font-bold font-playfair" style={{ color: "var(--color-foreground)" }}>
-            develove
-          </h1>
+          <Image src="/logo.png" alt="develove" width={120} height={36} className="h-8 w-auto" />
           <p className="text-xs mt-0.5" style={{ color: "var(--color-muted)" }}>
             hola, {firstName}
           </p>
