@@ -37,6 +37,9 @@ export default function CameraView({
   const [portrait, setPortrait] = useState(() =>
     typeof window !== "undefined" ? window.innerHeight > window.innerWidth : false
   );
+  const prevPortraitRef = useRef(
+    typeof window !== "undefined" ? window.innerHeight > window.innerWidth : false
+  );
 
   async function activateTorch() {
     if (!flashEnabled) return;
@@ -109,6 +112,16 @@ export default function CameraView({
       try { (screen.orientation as any)?.unlock(); } catch {}
     };
   }, []);
+
+  // Cuando el usuario rota a landscape, el video element aparece por primera vez
+  // pero startCamera ya se ejecutó sin él — hay que reiniciarlo.
+  useEffect(() => {
+    const wasPortrait = prevPortraitRef.current;
+    prevPortraitRef.current = portrait;
+    if (wasPortrait && !portrait) {
+      startCamera();
+    }
+  }, [portrait, startCamera]);
 
   async function takePhoto() {
     if (!videoRef.current || !canvasRef.current || taking || photosLeft <= 0) return;

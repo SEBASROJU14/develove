@@ -63,7 +63,7 @@ export default function EventScreen({ event, userId, photosTaken: initial }: Pro
           >
             #{event.code}
           </p>
-          <h1 className="text-2xl font-bold" style={{ color: "var(--color-foreground)" }}>
+          <h1 className="text-2xl font-bold font-playfair" style={{ color: "var(--color-foreground)" }}>
             {event.name}
           </h1>
           <p className="text-sm mt-0.5" style={{ color: "var(--color-muted)" }}>

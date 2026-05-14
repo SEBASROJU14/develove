@@ -1,26 +1,47 @@
 @import "tailwindcss";
 
 @theme {
-  --color-background: #0f0f0f;
-  --color-surface: #1a1a1a;
-  --color-border: #2a2a2a;
-  --color-primary: #7c5cbf;
-  --color-primary-hover: #9370db;
-  --color-accent: #e8b4b8;
-  --color-muted: #666666;
-  --color-foreground: #f0f0f0;
+  --color-primary: #4A8B8C;
+  --color-primary-hover: #3a7879;
+  --color-accent: #B8C9A3;
+  --color-highlight: #F5C842;
+  --color-muted: #5A4A3A;
+  --color-foreground: #2C2C2C;
 
-  --font-sans: var(--font-inter);
+  --font-sans: var(--font-dm-sans);
 
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 20px;
 }
 
-body {
-  background: var(--color-background);
-  color: var(--color-foreground);
-  font-family: var(--font-sans), system-ui, sans-serif;
+:root {
+  --color-background: rgba(245, 238, 225, 0.85);
+  --color-surface: rgba(196, 168, 130, 0.25);
+  --color-border: rgba(255, 255, 255, 0.3);
+}
+
+@layer base {
+  body {
+    background: linear-gradient(135deg, #B5C99A, #F4A97F);
+    background-attachment: fixed;
+    color: var(--color-foreground);
+    font-family: var(--font-dm-sans), system-ui, sans-serif;
+  }
+}
+
+.font-playfair {
+  font-family: var(--font-playfair), serif;
+}
+
+[style*="var(--color-surface)"] {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+[style*="background: var(--color-primary)"],
+[style*="background:var(--color-primary)"] {
+  box-shadow: 0 4px 12px rgba(74, 139, 140, 0.3);
 }
 
 @keyframes camera-flash {

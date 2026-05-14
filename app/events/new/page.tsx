@@ -28,7 +28,7 @@ export default async function NewEventPage() {
       </div>
 
       <div className="mb-8">
-        <h1 className="text-2xl font-bold" style={{ color: "var(--color-foreground)" }}>
+        <h1 className="text-2xl font-bold font-playfair" style={{ color: "var(--color-foreground)" }}>
           Nuevo rollo
         </h1>
         <p className="text-sm mt-1" style={{ color: "var(--color-muted)" }}>

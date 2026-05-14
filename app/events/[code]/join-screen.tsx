@@ -31,7 +31,7 @@ export default function JoinScreen({ event }: { event: Event }) {
         <div className="text-4xl">📷</div>
 
         <div>
-          <h1 className="text-2xl font-bold" style={{ color: "var(--color-foreground)" }}>
+          <h1 className="text-2xl font-bold font-playfair" style={{ color: "var(--color-foreground)" }}>
             {event.name}
           </h1>
           <p className="text-sm mt-1" style={{ color: "var(--color-muted)" }}>

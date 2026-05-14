@@ -14,7 +14,7 @@ export default async function HomePage() {
     <main className="flex flex-col items-center justify-center min-h-screen px-6 text-center">
       <div className="max-w-md w-full space-y-8">
         <div className="space-y-3">
-          <h1 className="text-5xl font-bold tracking-tight" style={{ color: "var(--color-foreground)" }}>
+          <h1 className="text-5xl font-bold tracking-tight font-playfair" style={{ color: "var(--color-foreground)" }}>
             develove
           </h1>
           <p className="text-lg" style={{ color: "var(--color-muted)" }}>

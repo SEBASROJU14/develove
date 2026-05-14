@@ -31,7 +31,7 @@ export default async function DashboardPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-10">
         <div>
-          <h1 className="text-xl font-bold" style={{ color: "var(--color-foreground)" }}>
+          <h1 className="text-xl font-bold font-playfair" style={{ color: "var(--color-foreground)" }}>
             develove
           </h1>
           <p className="text-xs mt-0.5" style={{ color: "var(--color-muted)" }}>
@@ -95,7 +95,7 @@ export default async function DashboardPage() {
             >
               <div className="min-w-0">
                 <p
-                  className="font-medium truncate"
+                  className="font-medium truncate font-playfair"
                   style={{ color: "var(--color-foreground)" }}
                 >
                   {ev.name}

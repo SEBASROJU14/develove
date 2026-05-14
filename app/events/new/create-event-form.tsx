@@ -97,7 +97,7 @@ export default function CreateEventForm() {
           min={toLocalDatetimeInput()}
           required
           className="w-full bg-transparent outline-none text-sm"
-          style={{ color: "var(--color-foreground)", colorScheme: "dark" }}
+          style={{ color: "var(--color-foreground)", colorScheme: "light" }}
         />
       </Field>
 
@@ -110,7 +110,7 @@ export default function CreateEventForm() {
           min={eventDate}
           required
           className="w-full bg-transparent outline-none text-sm"
-          style={{ color: "var(--color-foreground)", colorScheme: "dark" }}
+          style={{ color: "var(--color-foreground)", colorScheme: "light" }}
         />
       </Field>
 

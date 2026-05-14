@@ -174,7 +174,7 @@ export default function Gallery({ event, photos }: Props) {
             </Link>
 
             <div className="text-center">
-              <p className="font-semibold text-sm" style={{ color: "var(--color-foreground)" }}>
+              <p className="font-semibold text-sm font-playfair" style={{ color: "var(--color-foreground)" }}>
                 {event.name}
               </p>
               <p className="text-xs" style={{ color: "var(--color-muted)" }}>
