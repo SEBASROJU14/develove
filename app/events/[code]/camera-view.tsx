@@ -34,12 +34,6 @@ export default function CameraView({
   const [cameraError, setCameraError] = useState<CameraError | null>(null);
   const [justTook, setJustTook] = useState(false);
   const [flashEnabled, setFlashEnabled] = useState(true);
-  const [portrait, setPortrait] = useState(() =>
-    typeof window !== "undefined" ? window.innerHeight > window.innerWidth : false
-  );
-  const prevPortraitRef = useRef(
-    typeof window !== "undefined" ? window.innerHeight > window.innerWidth : false
-  );
 
   async function activateTorch() {
     if (!flashEnabled) return;
@@ -88,40 +82,6 @@ export default function CameraView({
       streamRef.current?.getTracks().forEach((t) => t.stop());
     };
   }, [startCamera]);
-
-  useEffect(() => {
-    let removeListener: (() => void) | null = null;
-
-    const addResizeListener = () => {
-      const update = () => setPortrait(window.innerHeight > window.innerWidth);
-      window.addEventListener("resize", update);
-      removeListener = () => window.removeEventListener("resize", update);
-    };
-
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (screen.orientation as any).lock("landscape").catch(addResizeListener);
-    } catch {
-      // screen.orientation undefined (iOS < 16.4) o lock no soportado
-      addResizeListener();
-    }
-
-    return () => {
-      removeListener?.();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      try { (screen.orientation as any)?.unlock(); } catch {}
-    };
-  }, []);
-
-  // Cuando el usuario rota a landscape, el video element aparece por primera vez
-  // pero startCamera ya se ejecutó sin él — hay que reiniciarlo.
-  useEffect(() => {
-    const wasPortrait = prevPortraitRef.current;
-    prevPortraitRef.current = portrait;
-    if (wasPortrait && !portrait) {
-      startCamera();
-    }
-  }, [portrait, startCamera]);
 
   async function takePhoto() {
     if (!videoRef.current || !canvasRef.current || taking || photosLeft <= 0) return;
@@ -181,10 +141,6 @@ export default function CameraView({
   function handleBack() {
     streamRef.current?.getTracks().forEach((t) => t.stop());
     onBack?.();
-  }
-
-  if (portrait) {
-    return <RotateScreen onBack={onBack} />;
   }
 
   if (cameraError) {
@@ -312,48 +268,6 @@ export default function CameraView({
         <div className="w-11" />
       </div>
     </div>
-  );
-}
-
-// ── Pantalla de rotación ─────────────────────────────────────────────────────
-
-function RotateScreen({ onBack }: { onBack?: () => void }) {
-  return (
-    <div className="fixed inset-0 flex flex-col items-center justify-center gap-3" style={{ background: "linear-gradient(135deg, #6D795C, #92654C)" }}>
-      <RotateIcon />
-      <p className="text-white text-sm font-medium">Gira tu celular</p>
-      {onBack && (
-        <button
-          onClick={onBack}
-          className="mt-3 text-xs underline"
-          style={{ color: "rgba(255,255,255,0.4)" }}
-        >
-          Volver al evento
-        </button>
-      )}
-    </div>
-  );
-}
-
-function RotateIcon() {
-  return (
-    <svg
-      width="52"
-      height="52"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="white"
-      strokeWidth="1.4"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      style={{ opacity: 0.85 }}
-    >
-      {/* Phone in portrait */}
-      <rect x="7" y="2" width="10" height="16" rx="2" />
-      {/* Arc indicating rotation to landscape */}
-      <path d="M4 20c0-2.5 1-4.5 2.5-6" />
-      <polyline points="4 20 7 19 5 16" />
-    </svg>
   );
 }
 
