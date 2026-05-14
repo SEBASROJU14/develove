@@ -89,16 +89,24 @@ export default function CameraView({
   useEffect(() => {
     let removeListener: (() => void) | null = null;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (screen.orientation as any).lock("landscape").catch(() => {
+    const addResizeListener = () => {
       const update = () => setPortrait(window.innerHeight > window.innerWidth);
       window.addEventListener("resize", update);
       removeListener = () => window.removeEventListener("resize", update);
-    });
+    };
+
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (screen.orientation as any).lock("landscape").catch(addResizeListener);
+    } catch {
+      // screen.orientation undefined (iOS < 16.4) o lock no soportado
+      addResizeListener();
+    }
 
     return () => {
       removeListener?.();
-      try { (screen.orientation as any).unlock(); } catch {}
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      try { (screen.orientation as any)?.unlock(); } catch {}
     };
   }, []);
 
@@ -181,12 +189,12 @@ export default function CameraView({
   );
 
   return (
-    <div className="fixed inset-0 bg-black flex flex-col select-none">
+    <div className="fixed inset-0 flex flex-col select-none" style={{ background: "linear-gradient(135deg, #6D795C, #92654C)" }}>
       {/* Top bar */}
       <div className="flex items-center justify-between px-5 pt-10 pb-2">
         {BackBtn}
         <div className="text-center">
-          <p className="text-white text-sm font-medium">{event.name}</p>
+          <p className="text-white text-sm font-medium font-playfair">{event.name}</p>
           <p className="text-xs" style={{ color: "rgba(255,255,255,0.45)" }}>
             revelado {formatDate(event.reveal_date)}
           </p>
@@ -298,7 +306,7 @@ export default function CameraView({
 
 function RotateScreen({ onBack }: { onBack?: () => void }) {
   return (
-    <div className="fixed inset-0 bg-black flex flex-col items-center justify-center gap-3">
+    <div className="fixed inset-0 flex flex-col items-center justify-center gap-3" style={{ background: "linear-gradient(135deg, #6D795C, #92654C)" }}>
       <RotateIcon />
       <p className="text-white text-sm font-medium">Gira tu celular</p>
       {onBack && (
@@ -415,7 +423,7 @@ function CameraErrorScreen({
   const info = type === "permission" ? PERMISSION_STEPS[detectBrowser()] : null;
 
   return (
-    <div className="fixed inset-0 bg-black flex flex-col items-center justify-center px-6">
+    <div className="fixed inset-0 flex flex-col items-center justify-center px-6" style={{ background: "linear-gradient(135deg, #6D795C, #92654C)" }}>
       <div className="max-w-xs w-full space-y-6">
         <p className="text-3xl text-center">📷</p>
 
