@@ -14,27 +14,29 @@ const FILTERS: Record<FilterKey, { label: string; desc: string }> = {
 };
 
 const FILTER_SVG_DEFS: Record<FilterKey, string> = {
-  // Kodak Portra: R×1.20 G×1.05 B×0.85 | warm shadow bias (+0.02R +0.01G intercept)
-  // Halation: blur(10) #FF8C32 multiply→screen | Grain: 0.9/4oct soft-light 8%
-  golden: `<filter id="filter-golden" color-interpolation-filters="sRGB" x="-5%" y="-5%" width="110%" height="110%"><feColorMatrix in="SourceGraphic" type="matrix" values="1.20 0.02 0.00 0 0.02  0.00 1.05 0.00 0 0.01  0.00 0.00 0.85 0 0.00  0 0 0 1 0" result="graded"/><feGaussianBlur in="SourceGraphic" stdDeviation="10" result="glow"/><feFlood flood-color="#FF8C32" flood-opacity="0.4" result="warmFlood"/><feBlend in="warmFlood" in2="glow" mode="multiply" result="warmGlow"/><feBlend in="graded" in2="warmGlow" mode="screen" result="lit"/><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="4" seed="2" stitchTiles="stitch" result="noise"/><feColorMatrix type="saturate" values="0" in="noise" result="monoNoise"/><feBlend in="lit" in2="monoNoise" mode="soft-light" result="grainBlend"/><feComposite in="lit" in2="grainBlend" operator="arithmetic" k1="0" k2="0.92" k3="0.08" k4="0"/></filter>`,
-  // Ilford HP5: luminosity BT.601 (R×0.299 G×0.587 B×0.114) × contrast slope 1.20
-  // intercept R/G=-0.10, B=-0.056 → cold blue shadow bias +0.044 en sombras
-  // Grain: 0.9/4oct soft-light 8%
-  bw: `<filter id="filter-bw" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0.3588 0.7044 0.1368 0 -0.10  0.3588 0.7044 0.1368 0 -0.10  0.3588 0.7044 0.1368 0 -0.056  0 0 0 1 0" result="graded"/><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="4" seed="5" stitchTiles="stitch" result="noise"/><feColorMatrix type="saturate" values="0" in="noise" result="monoNoise"/><feBlend in="graded" in2="monoNoise" mode="soft-light" result="grainBlend"/><feComposite in="graded" in2="grainBlend" operator="arithmetic" k1="0" k2="0.92" k3="0.08" k4="0"/></filter>`,
-  // Fuji Superia: desat 65% BT.709 + R×0.92 + B shadow bias +0.06
-  // Matrix: sat65=[0.7244R+0.2503G+0.0253B, 0.0744R+0.9002G+0.0253B, 0.0744R+0.2503G+0.6756B] → R row ×0.92 → B intercept+0.06
-  // Cold halation: blur(8) #C8DCFF multiply→screen | Grain: 0.9/4oct soft-light 8%
-  ghost: `<filter id="filter-ghost" color-interpolation-filters="sRGB" x="-5%" y="-5%" width="110%" height="110%"><feColorMatrix in="SourceGraphic" type="matrix" values="0.6664 0.2303 0.0233 0 0.00  0.0744 0.9002 0.0253 0 0.00  0.0744 0.2503 0.6756 0 0.06  0 0 0 1 0" result="graded"/><feGaussianBlur in="SourceGraphic" stdDeviation="8" result="glow"/><feFlood flood-color="#C8DCFF" flood-opacity="0.35" result="coldFlood"/><feBlend in="coldFlood" in2="glow" mode="multiply" result="coldGlow"/><feBlend in="graded" in2="coldGlow" mode="screen" result="lit"/><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="4" seed="8" stitchTiles="stitch" result="noise"/><feColorMatrix type="saturate" values="0" in="noise" result="monoNoise"/><feBlend in="lit" in2="monoNoise" mode="soft-light" result="grainBlend"/><feComposite in="lit" in2="grainBlend" operator="arithmetic" k1="0" k2="0.92" k3="0.08" k4="0"/></filter>`,
+  // Golden Film: R×1.18+0.02G+0.01 | G×1.03+0.01 | B×0.88
+  // Contraste: slope=1.35 intercept=-0.175
+  // Halation highlights-only: blur(2)→tableValues(0 0 0 0 0.3 0.7 1)→multiply #FF8C32→scale 0.10→screen
+  // Grano: 0.75/4oct soft-light 20% (k2=0.80 k3=0.20)
+  golden: `<filter id="filter-golden" color-interpolation-filters="sRGB" x="-5%" y="-5%" width="110%" height="110%"><feColorMatrix in="SourceGraphic" type="matrix" values="1.18 0.02 0 0 0.01  0 1.03 0 0 0.01  0 0 0.88 0 0  0 0 0 1 0" result="colorMat"/><feComponentTransfer in="colorMat" result="graded"><feFuncR type="linear" slope="1.35" intercept="-0.175"/><feFuncG type="linear" slope="1.35" intercept="-0.175"/><feFuncB type="linear" slope="1.35" intercept="-0.175"/></feComponentTransfer><feGaussianBlur in="SourceGraphic" stdDeviation="2" result="glow"/><feComponentTransfer in="glow" result="highlights"><feFuncR type="table" tableValues="0 0 0 0 0.3 0.7 1"/><feFuncG type="table" tableValues="0 0 0 0 0.3 0.7 1"/><feFuncB type="table" tableValues="0 0 0 0 0.3 0.7 1"/></feComponentTransfer><feFlood flood-color="#FF8C32" result="orange"/><feBlend in="orange" in2="highlights" mode="multiply" result="warmHighlights"/><feComponentTransfer in="warmHighlights" result="halo"><feFuncR type="linear" slope="0.10"/><feFuncG type="linear" slope="0.10"/><feFuncB type="linear" slope="0.10"/></feComponentTransfer><feBlend in="graded" in2="halo" mode="screen" result="lit"/><feTurbulence type="fractalNoise" baseFrequency="0.75" numOctaves="4" seed="2" stitchTiles="stitch" result="noise"/><feColorMatrix type="saturate" values="0" in="noise" result="monoNoise"/><feBlend in="lit" in2="monoNoise" mode="soft-light" result="grainBlend"/><feComposite in="lit" in2="grainBlend" operator="arithmetic" k1="0" k2="0.80" k3="0.20" k4="0"/></filter>`,
+  // B&W Film: luminosidad BT.601 (0.299R+0.587G+0.114B) | bias azul sombras +0.03 en canal B
+  // Contraste: slope=1.25 intercept=-0.125
+  // Grano: 0.70/4oct soft-light 18% (k2=0.82 k3=0.18)
+  bw: `<filter id="filter-bw" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0.299 0.587 0.114 0 0  0.299 0.587 0.114 0 0  0.299 0.587 0.114 0 0.03  0 0 0 1 0" result="gray"/><feComponentTransfer in="gray" result="graded"><feFuncR type="linear" slope="1.25" intercept="-0.125"/><feFuncG type="linear" slope="1.25" intercept="-0.125"/><feFuncB type="linear" slope="1.25" intercept="-0.125"/></feComponentTransfer><feTurbulence type="fractalNoise" baseFrequency="0.70" numOctaves="4" seed="5" stitchTiles="stitch" result="noise"/><feColorMatrix type="saturate" values="0" in="noise" result="monoNoise"/><feBlend in="graded" in2="monoNoise" mode="soft-light" result="grainBlend"/><feComposite in="graded" in2="grainBlend" operator="arithmetic" k1="0" k2="0.82" k3="0.18" k4="0"/></filter>`,
+  // Ghost Film: R=0.72R+0.20G+0.02B | G=0.08R+0.88G+0.02B | B=0.08R+0.22G+0.68B+0.04
+  // Contraste: slope=1.20 intercept=-0.10 | Sin halation
+  // Grano: 0.65/4oct soft-light 16% (k2=0.84 k3=0.16)
+  ghost: `<filter id="filter-ghost" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0.72 0.20 0.02 0 0  0.08 0.88 0.02 0 0  0.08 0.22 0.68 0 0.04  0 0 0 1 0" result="colorMat"/><feComponentTransfer in="colorMat" result="graded"><feFuncR type="linear" slope="1.20" intercept="-0.10"/><feFuncG type="linear" slope="1.20" intercept="-0.10"/><feFuncB type="linear" slope="1.20" intercept="-0.10"/></feComponentTransfer><feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="4" seed="8" stitchTiles="stitch" result="noise"/><feColorMatrix type="saturate" values="0" in="noise" result="monoNoise"/><feBlend in="graded" in2="monoNoise" mode="soft-light" result="grainBlend"/><feComposite in="graded" in2="grainBlend" operator="arithmetic" k1="0" k2="0.84" k3="0.16" k4="0"/></filter>`,
 };
 
 // Viñeta: radialGradient CSS para DOM, opacidades según especificación
 const VIGNETTES: Record<FilterKey, string> = {
-  golden: "radial-gradient(ellipse at 50% 50%, transparent 35%, rgba(0,0,0,0.35) 100%)",
-  ghost:  "radial-gradient(ellipse at 50% 50%, transparent 35%, rgba(0,0,0,0.20) 100%)",
-  bw:     "radial-gradient(ellipse at 50% 50%, transparent 35%, rgba(0,0,0,0.15) 100%)",
+  golden: "radial-gradient(ellipse at 50% 50%, transparent 35%, rgba(0,0,0,0.30) 100%)",
+  ghost:  "radial-gradient(ellipse at 50% 50%, transparent 35%, rgba(0,0,0,0.15) 100%)",
+  bw:     "radial-gradient(ellipse at 50% 50%, transparent 35%, rgba(0,0,0,0.20) 100%)",
 };
 
-const VIGNETTE_OPACITY: Record<FilterKey, number> = { golden: 0.35, ghost: 0.20, bw: 0.15 };
+const VIGNETTE_OPACITY: Record<FilterKey, number> = { golden: 0.30, ghost: 0.15, bw: 0.20 };
 
 interface Props {
   event: Event;
