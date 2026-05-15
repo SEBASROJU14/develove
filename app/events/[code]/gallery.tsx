@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Link from "next/link";
 import { formatDate } from "@/lib/utils";
 import type { Event, PhotoWithProfile } from "@/types/database";
@@ -44,12 +44,13 @@ interface Props {
 }
 
 async function applyFilterToBlob(url: string, filterId: FilterKey): Promise<Blob> {
+  const proxied = `/api/download?url=${encodeURIComponent(url)}`;
   const img = new Image();
   img.crossOrigin = "anonymous";
   await new Promise<void>((resolve, reject) => {
     img.onload = () => resolve();
     img.onerror = () => reject(new Error("No se pudo cargar la imagen"));
-    img.src = url;
+    img.src = proxied;
   });
 
   const w = img.naturalWidth;
@@ -115,9 +116,28 @@ function triggerDownload(blob: Blob, filename: string) {
 
 export default function Gallery({ event, photos }: Props) {
   const [filter, setFilter] = useState<FilterKey>("golden");
-  const [lightbox, setLightbox] = useState<PhotoWithProfile | null>(null);
+  const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
+  const lightbox = lightboxIdx !== null ? photos[lightboxIdx] : null;
   const [downloadingPhoto, setDownloadingPhoto] = useState<string | null>(null);
   const [downloadingAlbum, setDownloadingAlbum] = useState(false);
+  const touchStartX = useRef<number | null>(null);
+
+  function goPrev() {
+    setLightboxIdx((i) => (i !== null && i > 0 ? i - 1 : i));
+  }
+  function goNext() {
+    setLightboxIdx((i) => (i !== null && i < photos.length - 1 ? i + 1 : i));
+  }
+  function handleTouchStart(e: React.TouchEvent) {
+    touchStartX.current = e.touches[0].clientX;
+  }
+  function handleTouchEnd(e: React.TouchEvent) {
+    if (touchStartX.current === null) return;
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    touchStartX.current = null;
+    if (dx > 50) goPrev();
+    else if (dx < -50) goNext();
+  }
 
   async function downloadPhoto(photo: PhotoWithProfile) {
     if (downloadingPhoto) return;
@@ -233,11 +253,11 @@ export default function Gallery({ event, photos }: Props) {
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-0.5 p-0.5">
-            {photos.map((photo) => (
+            {photos.map((photo, idx) => (
               // div en lugar de button para poder anidar el botón de descarga
               <div
                 key={photo.id}
-                onClick={() => setLightbox(photo)}
+                onClick={() => setLightboxIdx(idx)}
                 className="relative aspect-square overflow-hidden cursor-pointer"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -288,20 +308,22 @@ export default function Gallery({ event, photos }: Props) {
       </div>
 
       {/* Lightbox */}
-      {lightbox && (
+      {lightbox && lightboxIdx !== null && (
         <div
           className="fixed inset-0 z-50 bg-black flex flex-col"
-          onClick={() => setLightbox(null)}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+          onClick={() => setLightboxIdx(null)}
         >
+          {/* Header */}
           <div className="flex items-center justify-between px-5 pt-12 pb-4">
             <p className="text-white text-sm">
               {lightbox.profile?.full_name ?? "anon"}
             </p>
-            <div
-              className="flex items-center gap-3"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Descarga desde lightbox */}
+            <p className="text-xs font-mono" style={{ color: "rgba(255,255,255,0.45)" }}>
+              {lightboxIdx + 1}/{photos.length}
+            </p>
+            <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
               <button
                 onClick={() => downloadPhoto(lightbox)}
                 disabled={!!downloadingPhoto}
@@ -316,14 +338,25 @@ export default function Gallery({ event, photos }: Props) {
               </button>
               <button
                 className="text-white text-2xl leading-none"
-                onClick={() => setLightbox(null)}
+                onClick={() => setLightboxIdx(null)}
               >
                 ×
               </button>
             </div>
           </div>
 
+          {/* Imagen + flechas */}
           <div className="flex-1 flex items-center justify-center px-2 relative">
+            {lightboxIdx > 0 && (
+              <button
+                onClick={(e) => { e.stopPropagation(); goPrev(); }}
+                className="absolute left-3 z-10 w-10 h-10 rounded-full flex items-center justify-center transition-opacity active:opacity-60"
+                style={{ background: "rgba(255,255,255,0.15)", color: "white" }}
+              >
+                <ChevronLeft />
+              </button>
+            )}
+
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={lightbox.storage_url}
@@ -333,6 +366,16 @@ export default function Gallery({ event, photos }: Props) {
               onClick={(e) => e.stopPropagation()}
             />
             <div className="absolute inset-0 pointer-events-none" style={{ background: VIGNETTES[filter] }} />
+
+            {lightboxIdx < photos.length - 1 && (
+              <button
+                onClick={(e) => { e.stopPropagation(); goNext(); }}
+                className="absolute right-3 z-10 w-10 h-10 rounded-full flex items-center justify-center transition-opacity active:opacity-60"
+                style={{ background: "rgba(255,255,255,0.15)", color: "white" }}
+              >
+                <ChevronRight />
+              </button>
+            )}
           </div>
 
           <p className="text-center text-xs pb-10" style={{ color: "rgba(255,255,255,0.4)" }}>
@@ -353,6 +396,24 @@ function DownloadIcon({ size = 16 }: { size?: number }) {
       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
       <polyline points="7 10 12 15 17 10" />
       <line x1="12" y1="15" x2="12" y2="3" />
+    </svg>
+  );
+}
+
+function ChevronLeft() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M15 18l-6-6 6-6" />
+    </svg>
+  );
+}
+
+function ChevronRight() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 18l6-6-6-6" />
     </svg>
   );
 }
