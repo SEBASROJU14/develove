@@ -34,6 +34,24 @@ export default function CameraView({
   const [cameraError, setCameraError] = useState<CameraError | null>(null);
   const [justTook, setJustTook] = useState(false);
   const [flashEnabled, setFlashEnabled] = useState(true);
+  const [zoom, setZoom] = useState<"0.5" | "1">("1");
+  const [countdown, setCountdown] = useState("");
+
+  useEffect(() => {
+    function compute() {
+      const diff = new Date(event.reveal_date).getTime() - Date.now();
+      if (diff <= 0) { setCountdown(""); return; }
+      const d = Math.floor(diff / 86400000);
+      const h = Math.floor((diff % 86400000) / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      if (d > 0) setCountdown(`${d}d ${h}h`);
+      else if (h > 0) setCountdown(`${h}h ${m}m`);
+      else setCountdown(`${m}m`);
+    }
+    compute();
+    const id = setInterval(compute, 60000);
+    return () => clearInterval(id);
+  }, [event.reveal_date]);
 
   async function activateTorch() {
     if (!flashEnabled) return;
@@ -148,128 +166,151 @@ export default function CameraView({
   }
 
   const BackBtn = onBack ? (
-    <button onClick={handleBack} className="text-white p-1">
+    <button onClick={handleBack} className="w-9 h-9 rounded-full flex items-center justify-center text-white" style={ctrlStyle}>
       <BackArrow />
     </button>
   ) : (
-    <Link href="/dashboard" className="text-white p-1">
+    <Link href="/dashboard" className="w-9 h-9 rounded-full flex items-center justify-center text-white" style={ctrlStyle}>
       <BackArrow />
     </Link>
   );
 
   return (
-    <div className="fixed inset-0 flex flex-col select-none" style={{ background: "linear-gradient(135deg, #6D795C, #92654C)" }}>
-      {/* Top bar */}
-      <div className="flex items-center justify-between px-5 pt-10 pb-2">
-        {BackBtn}
-        <div className="text-center">
-          <p className="text-white text-sm font-medium font-playfair">{event.name}</p>
-          <p className="text-xs" style={{ color: "rgba(255,255,255,0.45)" }}>
-            revelado {formatDate(event.reveal_date)}
-          </p>
-        </div>
-        {/* Balance visual con el botón de atrás */}
-        <div className="w-7" />
-      </div>
+    <div className="fixed inset-0 select-none overflow-hidden">
+      {/* Fullscreen video */}
+      <video
+        ref={videoRef}
+        autoPlay
+        playsInline
+        muted
+        className="absolute inset-0 w-full h-full object-cover"
+      />
+      <canvas ref={canvasRef} className="hidden" />
 
-      {/* Viewfinder centrado en formato horizontal */}
-      <div className="flex-1 flex items-center justify-center px-3">
+      {/* Flash overlay */}
+      {flashing && (
+        <div className="absolute inset-0 bg-white pointer-events-none animate-flash z-10" />
+      )}
+
+      {/* Top bar */}
+      <div
+        className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-4 pb-8"
+        style={{
+          paddingTop: "max(2.5rem, env(safe-area-inset-top))",
+          background: "linear-gradient(to bottom, rgba(0,0,0,0.65) 0%, transparent 100%)",
+        }}
+      >
+        {BackBtn}
+
+        <div className="text-center">
+          <p className="text-white text-sm font-medium font-playfair leading-tight">
+            {event.name}
+          </p>
+          {countdown ? (
+            <p className="text-[11px] mt-0.5" style={{ color: "rgba(255,255,255,0.5)" }}>
+              revela en {countdown}
+            </p>
+          ) : null}
+        </div>
+
+        {/* Contador de fotos */}
         <div
-          className="relative w-full rounded-2xl overflow-hidden"
+          className="px-2.5 py-1 rounded-full text-xs font-mono font-semibold"
           style={{
-            aspectRatio: "4/3",
-            boxShadow:
-              "0 0 0 2px rgba(255,255,255,0.07), 0 24px 60px rgba(0,0,0,0.9)",
+            ...ctrlStyle,
+            color: justTook ? "#e8b4b8" : "white",
+            minWidth: 52,
+            textAlign: "center",
           }}
         >
-          <video
-            ref={videoRef}
-            autoPlay
-            playsInline
-            muted
-            className="absolute inset-0 w-full h-full object-cover"
-          />
-          <canvas ref={canvasRef} className="hidden" />
+          {photosLeft > 0 ? `${photosLeft} foto${photosLeft !== 1 ? "s" : ""}` : "Lleno"}
+        </div>
+      </div>
 
+      {/* Bottom bar */}
+      <div
+        className="absolute bottom-0 left-0 right-0 z-20"
+        style={{
+          background: "linear-gradient(to top, rgba(0,0,0,0.72) 0%, transparent 100%)",
+          paddingBottom: "max(1.75rem, env(safe-area-inset-bottom))",
+        }}
+      >
+        {/* Zoom selector */}
+        <div className="flex justify-center mb-5">
+          <div
+            className="flex gap-0.5 rounded-full p-1"
+            style={{ background: "rgba(0,0,0,0.45)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)" }}
+          >
+            {(["0.5", "1"] as const).map((z) => (
+              <button
+                key={z}
+                onClick={() => setZoom(z)}
+                className="rounded-full text-xs font-semibold px-3 py-1 transition-all"
+                style={{
+                  background: zoom === z ? "rgba(255,255,255,0.22)" : "transparent",
+                  color: zoom === z ? "white" : "rgba(255,255,255,0.4)",
+                }}
+              >
+                {z}×
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Controles */}
+        <div className="flex items-center justify-between px-10">
           {/* Flash */}
-          {flashing && (
-            <div className="absolute inset-0 bg-white pointer-events-none animate-flash" />
-          )}
-
-          {/* Toggle flash */}
           <button
             onClick={() => setFlashEnabled((f) => !f)}
-            className="absolute top-3 left-3 w-8 h-8 rounded-full flex items-center justify-center transition-opacity"
+            className="w-12 h-12 rounded-full flex items-center justify-center transition-opacity active:opacity-60"
             style={{
-              background: "rgba(0,0,0,0.52)",
-              backdropFilter: "blur(6px)",
+              ...ctrlStyle,
               color: flashEnabled ? "#ffd60a" : "rgba(255,255,255,0.35)",
             }}
           >
             <FlashIcon />
           </button>
 
-          {/* Contador dentro del viewfinder */}
-          <div
-            className="absolute top-3 right-3 px-2.5 py-1 rounded-full text-xs font-mono font-semibold"
+          {/* Disparador */}
+          <button
+            onClick={takePhoto}
+            disabled={taking || photosLeft <= 0}
+            className="relative flex items-center justify-center rounded-full transition-transform active:scale-90"
             style={{
-              background: "rgba(0,0,0,0.52)",
-              backdropFilter: "blur(6px)",
-              color: justTook ? "#e8b4b8" : "white",
+              width: 80,
+              height: 80,
+              background: photosLeft <= 0 ? "rgba(255,255,255,0.2)" : "white",
+              boxShadow: "0 0 0 5px rgba(255,255,255,0.25)",
             }}
           >
-            {photosLeft > 0
-              ? `${photosLeft} foto${photosLeft !== 1 ? "s" : ""} restante${photosLeft !== 1 ? "s" : ""}`
-              : "Rollo completo"}
-          </div>
+            {taking && (
+              <div className="absolute inset-0 rounded-full" style={{ background: "rgba(0,0,0,0.22)" }} />
+            )}
+            {photosLeft <= 0 && (
+              <span className="text-xs font-medium" style={{ color: "#888" }}>Lleno</span>
+            )}
+          </button>
+
+          {/* Flip */}
+          <button
+            onClick={() => setFacingMode((m) => (m === "environment" ? "user" : "environment"))}
+            disabled={taking}
+            className="w-12 h-12 rounded-full flex items-center justify-center transition-opacity active:opacity-60"
+            style={ctrlStyle}
+          >
+            <FlipIcon />
+          </button>
         </div>
-      </div>
-
-      {/* Controles inferiores */}
-      <div
-        className="flex items-center justify-between px-8 pt-3"
-        style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}
-      >
-        {/* Cambiar cámara */}
-        <button
-          onClick={() => setFacingMode((m) => (m === "environment" ? "user" : "environment"))}
-          disabled={taking}
-          className="w-11 h-11 rounded-full flex items-center justify-center transition-opacity active:opacity-60"
-          style={{ background: "rgba(255,255,255,0.12)" }}
-        >
-          <FlipIcon />
-        </button>
-
-        {/* Disparador */}
-        <button
-          onClick={takePhoto}
-          disabled={taking || photosLeft <= 0}
-          className="relative flex items-center justify-center rounded-full transition-transform active:scale-90"
-          style={{
-            width: 76,
-            height: 76,
-            background: photosLeft <= 0 ? "#333" : "white",
-            boxShadow: "0 0 0 5px rgba(255,255,255,0.18)",
-          }}
-        >
-          {taking && (
-            <div
-              className="absolute inset-0 rounded-full"
-              style={{ background: "rgba(0,0,0,0.22)" }}
-            />
-          )}
-          {photosLeft <= 0 && (
-            <span className="text-xs font-medium" style={{ color: "#888" }}>
-              Lleno
-            </span>
-          )}
-        </button>
-
-        <div className="w-11" />
       </div>
     </div>
   );
 }
+
+const ctrlStyle: React.CSSProperties = {
+  background: "rgba(0,0,0,0.45)",
+  backdropFilter: "blur(10px)",
+  WebkitBackdropFilter: "blur(10px)",
+};
 
 // ── Pantalla de error ────────────────────────────────────────────────────────
 
@@ -350,7 +391,7 @@ function CameraErrorScreen({
   const info = type === "permission" ? PERMISSION_STEPS[detectBrowser()] : null;
 
   return (
-    <div className="fixed inset-0 flex flex-col items-center justify-center px-6" style={{ background: "linear-gradient(135deg, #6D795C, #92654C)" }}>
+    <div className="fixed inset-0 flex flex-col items-center justify-center px-6" style={{ background: "#0F0F0F" }}>
       <div className="max-w-xs w-full space-y-6">
         <p className="text-3xl text-center">📷</p>
 
@@ -413,7 +454,7 @@ function BackArrow() {
 
 function FlashIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
       <path d="M13 2L4.09 12.96A1 1 0 0 0 5 14.5h5.5L11 22l8.91-10.96A1 1 0 0 0 19 9.5h-5.5L13 2z" />
     </svg>
   );
@@ -421,7 +462,7 @@ function FlashIcon() {
 
 function FlipIcon() {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white"
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white"
       strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <path d="M1 4v6h6" />
       <path d="M23 20v-6h-6" />
