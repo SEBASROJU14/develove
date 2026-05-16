@@ -35,6 +35,7 @@ export default function CameraView({
   const [justTook, setJustTook] = useState(false);
   const [flashEnabled, setFlashEnabled] = useState(true);
   const [zoom, setZoom] = useState<"0.5" | "1">("1");
+  const [supportsZoom, setSupportsZoom] = useState(false);
   const [countdown, setCountdown] = useState("");
 
   useEffect(() => {
@@ -79,6 +80,10 @@ export default function CameraView({
       streamRef.current = stream;
       if (videoRef.current) videoRef.current.srcObject = stream;
       setCameraError(null);
+      const track = stream.getVideoTracks()[0];
+      const caps = (track.getCapabilities?.() ?? {}) as any;
+      setSupportsZoom(!!caps.zoom);
+      setZoom("1");
     } catch (err) {
       if (err instanceof DOMException) {
         if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
@@ -161,6 +166,15 @@ export default function CameraView({
     onBack?.();
   }
 
+  async function applyZoom(value: "0.5" | "1") {
+    const track = streamRef.current?.getVideoTracks()[0];
+    if (!track) return;
+    try {
+      await track.applyConstraints({ advanced: [{ zoom: parseFloat(value) } as any] });
+    } catch {}
+    setZoom(value);
+  }
+
   if (cameraError) {
     return <CameraErrorScreen type={cameraError} onBack={onBack} />;
   }
@@ -184,6 +198,7 @@ export default function CameraView({
         playsInline
         muted
         className="absolute inset-0 w-full h-full object-cover"
+        style={facingMode === "user" ? { transform: "scaleX(-1)" } : undefined}
       />
       <canvas ref={canvasRef} className="hidden" />
 
@@ -235,27 +250,29 @@ export default function CameraView({
           paddingBottom: "max(1.75rem, env(safe-area-inset-bottom))",
         }}
       >
-        {/* Zoom selector */}
-        <div className="flex justify-center mb-5">
-          <div
-            className="flex gap-0.5 rounded-full p-1"
-            style={{ background: "rgba(0,0,0,0.45)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)" }}
-          >
-            {(["0.5", "1"] as const).map((z) => (
-              <button
-                key={z}
-                onClick={() => setZoom(z)}
-                className="rounded-full text-xs font-semibold px-3 py-1 transition-all"
-                style={{
-                  background: zoom === z ? "rgba(255,255,255,0.22)" : "transparent",
-                  color: zoom === z ? "white" : "rgba(255,255,255,0.4)",
-                }}
-              >
-                {z}×
-              </button>
-            ))}
+        {/* Zoom selector — solo si el dispositivo soporta zoom */}
+        {supportsZoom && (
+          <div className="flex justify-center mb-5">
+            <div
+              className="flex gap-0.5 rounded-full p-1"
+              style={{ background: "rgba(0,0,0,0.45)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)" }}
+            >
+              {(["0.5", "1"] as const).map((z) => (
+                <button
+                  key={z}
+                  onClick={() => applyZoom(z)}
+                  className="rounded-full text-xs font-semibold px-3 py-1 transition-all"
+                  style={{
+                    background: zoom === z ? "rgba(255,255,255,0.22)" : "transparent",
+                    color: zoom === z ? "white" : "rgba(255,255,255,0.4)",
+                  }}
+                >
+                  {z}×
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Controles */}
         <div className="flex items-center justify-between px-10">
