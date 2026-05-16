@@ -5,8 +5,8 @@
   --color-primary-hover: #3a7879;
   --color-accent: #B8C9A3;
   --color-highlight: #F5C842;
-  --color-muted: #5A4A3A;
-  --color-foreground: #2C2C2C;
+  --color-muted: #888888;
+  --color-foreground: #F5F5F5;
 
   --font-sans: var(--font-dm-sans);
 
@@ -16,15 +16,14 @@
 }
 
 :root {
-  --color-background: rgba(245, 238, 225, 0.85);
-  --color-surface: rgba(196, 168, 130, 0.25);
-  --color-border: rgba(255, 255, 255, 0.3);
+  --color-background: #0F0F0F;
+  --color-surface: #1A1A1A;
+  --color-border: #2A2A2A;
 }
 
 @layer base {
   body {
-    background: linear-gradient(135deg, #B5C99A, #F4A97F);
-    background-attachment: fixed;
+    background: #0F0F0F;
     color: var(--color-foreground);
     font-family: var(--font-dm-sans), system-ui, sans-serif;
   }

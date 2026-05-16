@@ -87,10 +87,10 @@ export default function JoinForm() {
       <button
         type="submit"
         disabled={loading || codeLen < 6}
-        className="w-full py-2 rounded-lg text-sm font-medium disabled:opacity-30 cursor-pointer transition-opacity"
+        className="w-full py-2.5 rounded-xl text-sm font-bold disabled:opacity-30 cursor-pointer transition-opacity"
         style={{
-          background: "var(--color-border)",
-          color: "var(--color-foreground)",
+          background: "var(--color-primary)",
+          color: "white",
         }}
       >
         {loading ? "Buscando..." : "Entrar"}
