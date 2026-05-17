@@ -73,52 +73,107 @@ export default function DashboardShell({ firstName, active, revealed, thumbsByEv
                 const ev = m.events as unknown as Event;
                 const pct = Math.min((m.photos_taken / ev.max_photos_per_person) * 100, 100);
                 const countdown = computeCountdown(ev.reveal_date, now);
+
                 return (
                   <Link
                     key={m.id}
                     href={`/events/${ev.code}`}
-                    className="flex flex-col p-4 rounded-2xl transition-opacity active:opacity-60"
+                    className="flex flex-col rounded-2xl overflow-hidden transition-opacity active:opacity-60"
                     style={{
                       background: "#1A1A1A",
                       border: "1px solid #2A2A2A",
                       minHeight: 164,
                     }}
                   >
-                    <div className="flex items-start justify-between mb-2">
-                      <p className="font-mono text-[11px]" style={{ color: "#888" }}>
-                        #{ev.code}
-                      </p>
-                      <ArrowUpRight />
-                    </div>
-
-                    <p
-                      className="font-playfair font-bold text-sm leading-snug line-clamp-2 mb-auto"
-                      style={{ color: "#F5F5F5" }}
-                    >
-                      {ev.name}
-                    </p>
-
-                    <div className="mt-4">
-                      <div className="flex items-center justify-between mb-1.5">
-                        <p className="text-[11px]" style={{ color: "#888" }}>
-                          {m.photos_taken}/{ev.max_photos_per_person} fotos
+                    {ev.cover_image_url ? (
+                      /* Con imagen de portada */
+                      <>
+                        <div className="relative shrink-0" style={{ height: 80 }}>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={ev.cover_image_url}
+                            alt=""
+                            className="absolute inset-0 w-full h-full object-cover"
+                          />
+                          <div
+                            className="absolute inset-0"
+                            style={{ background: "linear-gradient(to top, rgba(0,0,0,0.65), transparent 60%)" }}
+                          />
+                          <div className="absolute top-2.5 left-3 right-3 flex items-start justify-between">
+                            <p className="font-mono text-[11px]" style={{ color: "rgba(255,255,255,0.55)" }}>
+                              #{ev.code}
+                            </p>
+                            <ArrowUpRight color="rgba(255,255,255,0.7)" />
+                          </div>
+                          <div className="absolute bottom-2.5 left-3 right-3">
+                            <p
+                              className="font-playfair font-bold text-sm leading-snug line-clamp-1"
+                              style={{ color: "white" }}
+                            >
+                              {ev.name}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="p-3">
+                          <div className="flex items-center justify-between mb-1.5">
+                            <p className="text-[11px]" style={{ color: "#888" }}>
+                              {m.photos_taken}/{ev.max_photos_per_person} fotos
+                            </p>
+                            <p className="text-[11px] font-mono" style={{ color: "#4A8B8C" }}>
+                              {countdown}
+                            </p>
+                          </div>
+                          <div style={{ background: "#2A2A2A", height: 3, borderRadius: 2 }}>
+                            <div
+                              style={{
+                                width: `${pct}%`,
+                                height: 3,
+                                background: "#4A8B8C",
+                                borderRadius: 2,
+                                transition: "width 0.5s ease",
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      /* Sin imagen — layout original */
+                      <div className="flex flex-col p-4" style={{ flex: 1 }}>
+                        <div className="flex items-start justify-between mb-2">
+                          <p className="font-mono text-[11px]" style={{ color: "#888" }}>
+                            #{ev.code}
+                          </p>
+                          <ArrowUpRight />
+                        </div>
+                        <p
+                          className="font-playfair font-bold text-sm leading-snug line-clamp-2 mb-auto"
+                          style={{ color: "#F5F5F5" }}
+                        >
+                          {ev.name}
                         </p>
-                        <p className="text-[11px] font-mono" style={{ color: "#4A8B8C" }}>
-                          {countdown}
-                        </p>
+                        <div className="mt-4">
+                          <div className="flex items-center justify-between mb-1.5">
+                            <p className="text-[11px]" style={{ color: "#888" }}>
+                              {m.photos_taken}/{ev.max_photos_per_person} fotos
+                            </p>
+                            <p className="text-[11px] font-mono" style={{ color: "#4A8B8C" }}>
+                              {countdown}
+                            </p>
+                          </div>
+                          <div style={{ background: "#2A2A2A", height: 3, borderRadius: 2 }}>
+                            <div
+                              style={{
+                                width: `${pct}%`,
+                                height: 3,
+                                background: "#4A8B8C",
+                                borderRadius: 2,
+                                transition: "width 0.5s ease",
+                              }}
+                            />
+                          </div>
+                        </div>
                       </div>
-                      <div style={{ background: "#2A2A2A", height: 3, borderRadius: 2 }}>
-                        <div
-                          style={{
-                            width: `${pct}%`,
-                            height: 3,
-                            background: "#4A8B8C",
-                            borderRadius: 2,
-                            transition: "width 0.5s ease",
-                          }}
-                        />
-                      </div>
-                    </div>
+                    )}
                   </Link>
                 );
               })}
@@ -136,45 +191,62 @@ export default function DashboardShell({ firstName, active, revealed, thumbsByEv
               {revealed.map((m) => {
                 const ev = m.events as unknown as Event;
                 const thumbs = thumbsByEvent[ev.id] ?? [];
+
                 return (
                   <Link
                     key={m.id}
                     href={`/events/${ev.code}`}
-                    className="flex items-center justify-between p-4 rounded-2xl transition-opacity active:opacity-60"
+                    className="flex items-stretch rounded-2xl overflow-hidden transition-opacity active:opacity-60"
                     style={{ background: "#1A1A1A", border: "1px solid #2A2A2A" }}
                   >
-                    <div className="min-w-0 mr-3">
-                      <p
-                        className="font-playfair font-medium text-sm truncate"
-                        style={{ color: "#F5F5F5" }}
-                      >
-                        {ev.name}
-                      </p>
-                      <p className="text-xs mt-0.5" style={{ color: "#888" }}>
-                        Revelado el {formatDate(ev.reveal_date)}
-                      </p>
-                    </div>
+                    {/* Portada a la izquierda */}
+                    {ev.cover_image_url && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={ev.cover_image_url}
+                        alt=""
+                        className="object-cover shrink-0"
+                        style={{ width: 56 }}
+                      />
+                    )}
 
-                    <div className="flex gap-1 shrink-0">
-                      {thumbs.length === 0 ? (
-                        <div
-                          className="rounded-lg flex items-center justify-center text-[10px]"
-                          style={{ width: 38, height: 38, background: "#2A2A2A", color: "#888" }}
+                    <div
+                      className="flex items-center justify-between flex-1 min-w-0"
+                      style={{ padding: ev.cover_image_url ? "10px 14px" : "16px" }}
+                    >
+                      <div className="min-w-0 mr-3">
+                        <p
+                          className="font-playfair font-medium text-sm truncate"
+                          style={{ color: "#F5F5F5" }}
                         >
-                          —
-                        </div>
-                      ) : (
-                        thumbs.slice(0, 4).map((url, i) => (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            key={i}
-                            src={url}
-                            alt=""
-                            className="rounded-lg object-cover"
-                            style={{ width: 38, height: 38 }}
-                          />
-                        ))
-                      )}
+                          {ev.name}
+                        </p>
+                        <p className="text-xs mt-0.5" style={{ color: "#888" }}>
+                          Revelado el {formatDate(ev.reveal_date)}
+                        </p>
+                      </div>
+
+                      <div className="flex gap-1 shrink-0">
+                        {thumbs.length === 0 ? (
+                          <div
+                            className="rounded-lg flex items-center justify-center text-[10px]"
+                            style={{ width: 38, height: 38, background: "#2A2A2A", color: "#888" }}
+                          >
+                            —
+                          </div>
+                        ) : (
+                          thumbs.slice(0, 4).map((url, i) => (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              key={i}
+                              src={url}
+                              alt=""
+                              className="rounded-lg object-cover"
+                              style={{ width: 38, height: 38 }}
+                            />
+                          ))
+                        )}
+                      </div>
                     </div>
                   </Link>
                 );
@@ -214,9 +286,9 @@ export default function DashboardShell({ firstName, active, revealed, thumbsByEv
   );
 }
 
-function ArrowUpRight() {
+function ArrowUpRight({ color = "#888" }: { color?: string }) {
   return (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#888"
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={color}
       strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M7 17L17 7M17 7H7M17 7v10" />
     </svg>

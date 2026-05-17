@@ -7,6 +7,7 @@ export type Event = {
   reveal_date: string;
   max_photos_per_person: number;
   created_at: string;
+  cover_image_url?: string;
 };
 
 export type EventMember = {

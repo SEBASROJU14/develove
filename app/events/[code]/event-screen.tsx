@@ -80,21 +80,47 @@ export default function EventScreen({ event, userId, photosTaken: initial }: Pro
 
       {/* Contenido centrado */}
       <div className="flex flex-col gap-3">
-        {/* Nombre y fecha */}
-        <div>
-          <p
-            className="font-mono text-xs tracking-widest mb-1"
-            style={{ color: "var(--color-muted)" }}
-          >
-            #{event.code}
-          </p>
-          <h1 className="text-2xl font-bold font-playfair" style={{ color: "var(--color-foreground)" }}>
-            {event.name}
-          </h1>
-          <p className="text-sm mt-0.5" style={{ color: "var(--color-muted)" }}>
-            {formatDate(event.event_date)}
-          </p>
-        </div>
+        {/* Portada o header de texto */}
+        {event.cover_image_url ? (
+          <div className="relative rounded-2xl overflow-hidden" style={{ height: 130 }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={event.cover_image_url}
+              alt=""
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+            <div
+              className="absolute inset-0"
+              style={{ background: "linear-gradient(to top, rgba(0,0,0,0.6), transparent 50%)" }}
+            />
+            <div className="absolute bottom-3 left-4">
+              <p className="font-mono text-[11px] mb-0.5" style={{ color: "rgba(255,255,255,0.5)" }}>
+                #{event.code}
+              </p>
+              <h1 className="text-xl font-medium text-white leading-tight">
+                {event.name}
+              </h1>
+              <p className="text-xs mt-0.5" style={{ color: "rgba(255,255,255,0.6)" }}>
+                {formatDate(event.event_date)}
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div>
+            <p
+              className="font-mono text-xs tracking-widest mb-1"
+              style={{ color: "var(--color-muted)" }}
+            >
+              #{event.code}
+            </p>
+            <h1 className="text-2xl font-bold font-playfair" style={{ color: "var(--color-foreground)" }}>
+              {event.name}
+            </h1>
+            <p className="text-sm mt-0.5" style={{ color: "var(--color-muted)" }}>
+              {formatDate(event.event_date)}
+            </p>
+          </div>
+        )}
 
         {/* Contador del rollo */}
         <div
