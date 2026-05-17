@@ -6,6 +6,7 @@ export type Event = {
   event_date: string;
   reveal_date: string;
   max_photos_per_person: number;
+  max_guests?: number | null;
   created_at: string;
   cover_image_url?: string;
 };

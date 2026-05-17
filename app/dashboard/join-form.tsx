@@ -37,7 +37,7 @@ export default function JoinForm() {
 
     const { data: event } = await supabase
       .from("events")
-      .select("id, code")
+      .select("id, code, max_guests")
       .eq("code", code)
       .single();
 
@@ -45,6 +45,19 @@ export default function JoinForm() {
       setError("Código no válido");
       setLoading(false);
       return;
+    }
+
+    // Verificar aforo
+    if (event.max_guests !== null && event.max_guests !== undefined) {
+      const { count } = await supabase
+        .from("event_members")
+        .select("id", { count: "exact", head: true })
+        .eq("event_id", event.id);
+      if ((count ?? 0) >= event.max_guests) {
+        setError("Este rollo está lleno");
+        setLoading(false);
+        return;
+      }
     }
 
     const { data: existing } = await supabase
